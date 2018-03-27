@@ -98,21 +98,38 @@ module.exports = function (server) {
   server.route({
     method: ['POST'],
     path: '/logtrail/search',
-    handler: function (request, reply) {
+    handler: async function (request, reply) {
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       var selected_config = request.payload.config;
       var searchText = request.payload.searchText;
       var highlight = false;
-
       if (searchText == null || searchText.length === 0) {
           searchText = '*';
-      } else {
-        highlight = true;
+      }
+
+      //If no time range is present get events based on default selected_config
+      var timestamp = request.payload.timestamp;
+      var rangeType = request.payload.rangeType;
+      if (timestamp == null) {
+        if (selected_config.default_time_range_in_days !== 0) {
+          var moment = require('moment');
+          timestamp = moment().subtract(
+            selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
+          rangeType = 'gte';
+        }
+      }
+
+      var indicesToSearch = await getIndicesToSearch(selected_config.es.default_index, selected_config.fields.mapping.timestamp, timestamp, request, server);
+      if (!indicesToSearch || indicesToSearch.length === 0) {
+        reply({
+          ok: false,
+          message: "Empty indices to search."
+        });
       }
 
       //Search Request bbody
       var searchRequest = {
-        index: selected_config.es.default_index,
+        index: indicesToSearch.join(","),
         size: selected_config.max_buckets,
         body : {
           sort : [{}],
@@ -137,7 +154,7 @@ module.exports = function (server) {
         }
       };
 
-      if (highlight) {
+      if (searchText !== "*") {
         searchRequest.body['highlight'] = {
           pre_tags : ["logtrail.highlight.pre_tag"],
           post_tags : ["logtrail.highlight.post_tag"],
@@ -165,18 +182,6 @@ module.exports = function (server) {
         //}
         termQuery.term[hostnameField] = request.payload.hostname;
         searchRequest.body.query.bool.filter.bool.must.push(termQuery);
-      }
-
-      //If no time range is present get events based on default selected_config
-      var timestamp = request.payload.timestamp;
-      var rangeType = request.payload.rangeType;
-      if (timestamp == null) {
-        if (selected_config.default_time_range_in_days !== 0) {
-          var moment = require('moment');
-          timestamp = moment().subtract(
-            selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
-          rangeType = 'gte';
-        }
       }
 
       //If timestamps are present set ranges
@@ -306,3 +311,37 @@ module.exports = function (server) {
     //SEMATEXT END
   });
 };
+
+function getIndicesToSearch(index, timestampField, fromTimestamp, request, server) {
+  return new Promise((resolve, reject) => {
+    const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
+    var fieldStatsRequest = {
+      index: index,
+      level: "indices",
+      body : {
+        fields : [ timestampField ],
+        index_constraints: {
+        }
+      }
+    };
+    var constraints = {
+      max_value: {
+        gte: fromTimestamp,
+        format: "epoch_millis"
+      }
+    }
+    fieldStatsRequest.body.index_constraints[timestampField] = constraints;
+    callWithRequest(request,'fieldStats',fieldStatsRequest).then(function (resp) {
+      var indicesToSearch = [];
+      if (resp.indices) {
+        for (var index in resp.indices) {
+          indicesToSearch.push(index);
+        }
+      }
+      resolve(indicesToSearch);
+    }).catch(function (resp) {
+      console.error("Error while fetch timestamp stats:" + JSON.stringify(resp));
+      resolve(null);
+    });
+  });
+}
