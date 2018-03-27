@@ -102,9 +102,12 @@ module.exports = function (server) {
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       var selected_config = request.payload.config;
       var searchText = request.payload.searchText;
+      var highlight = false;
 
       if (searchText == null || searchText.length === 0) {
           searchText = '*';
+      } else {
+        highlight = true;
       }
 
       //Search Request bbody
@@ -130,19 +133,22 @@ module.exports = function (server) {
                   }
                 }
             }
-          },
-          highlight : {
-            pre_tags : ["logtrail.highlight.pre_tag"],
-            post_tags : ["logtrail.highlight.post_tag"],
-            fields : {
-            }
           }
         }
       };
-      //Enable highlightng on message field
-      searchRequest.body.highlight.fields[selected_config.fields.mapping['message']] = {
-        number_of_fragments: 0
-      };
+
+      if (highlight) {
+        searchRequest.body['highlight'] = {
+          pre_tags : ["logtrail.highlight.pre_tag"],
+          post_tags : ["logtrail.highlight.post_tag"],
+          fields : {
+          }
+        };
+        //Enable highlightng on message field
+        searchRequest.body.highlight.fields[selected_config.fields.mapping['message']] = {
+          number_of_fragments: 0
+        };
+      }
 
       //By default Set sorting column to timestamp
       searchRequest.body.sort[0][selected_config.fields.mapping.timestamp] = {'order':request.payload.order ,'unmapped_type': 'boolean'};
@@ -280,13 +286,11 @@ module.exports = function (server) {
       const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
       callWithInternalUser('get',getRequest).then(function (resp) {
         var configFromES = resp._source;
-        console.error(JSON.stringify(configFromES));
         var config = require('../../logtrail.json');
         var indexConfig = config.index_patterns[0];
         indexConfig.es.default_index = index;
         indexConfig.fields = configFromES.field_mapping;
         indexConfig.color_mapping = configFromES.color_mapping;
-        console.error(JSON.stringify(config));
         reply({
           ok: true,
           config: config
