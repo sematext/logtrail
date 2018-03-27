@@ -1,5 +1,3 @@
-import init_server_context from "./init_server_context.js"
-
 function getMessageTemplate(handlebar, selected_config) {
   var message_format = selected_config.fields.message_format;
   //Append <a> tags for click to message format except for message field
@@ -96,29 +94,13 @@ function convertToClientFormat(selected_config, esResponse) {
 
 
 module.exports = function (server) {
-
-  var context = {};
-  init_server_context(server,context);
-
   //Search
   server.route({
     method: ['POST'],
     path: '/logtrail/search',
     handler: function (request, reply) {
-      var config = context.config;
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
-
-      var index = request.payload.index;
-      var selected_config = config.index_patterns[0];
-      if (index) {
-        for (var i = config.index_patterns.length - 1; i >= 0; i--) {
-          if (config.index_patterns[i].es.default_index === index) {
-            selected_config = config.index_patterns[i];
-            break;
-          }
-        }
-      }
-
+      var selected_config = request.payload.config;
       var searchText = request.payload.searchText;
 
       if (searchText == null || searchText.length === 0) {
@@ -172,9 +154,9 @@ module.exports = function (server) {
           }
         };
         var hostnameField = selected_config.fields.mapping.hostname;
-        if (selected_config.fields['hostname.keyword']) {
-          hostnameField += '.keyword';
-        }
+        //if (selected_config.fields['hostname.keyword']) {
+          hostnameField += '.raw';
+        //}
         termQuery.term[hostnameField] = request.payload.hostname;
         searchRequest.body.query.bool.filter.bool.must.push(termQuery);
       }
@@ -229,23 +211,14 @@ module.exports = function (server) {
     method: ['POST'],
     path: '/logtrail/hosts',
     handler: function (request,reply) {
-      var config = context.config;
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       var index = request.payload.index;
-      var selected_config = config.index_patterns[0];
-      if (index) {
-        for (var i = config.index_patterns.length - 1; i >= 0; i--) {
-          if (config.index_patterns[i].es.default_index === index) {
-            selected_config = config.index_patterns[i];
-            break;
-          }
-        }
-      }
+      var selected_config = request.payload.config;
 
       var hostnameField = selected_config.fields.mapping.hostname;
-      if (selected_config.fields['hostname.keyword']) {
-        hostnameField += '.keyword';
-      }
+      //if (selected_config.fields['hostname.keyword']) {
+        hostnameField += '.raw';
+      //}
       var hostAggRequest = {
         index: selected_config.es.default_index,
         body : {
@@ -285,10 +258,47 @@ module.exports = function (server) {
     method: 'GET',
     path: '/logtrail/config',
     handler: function (request, reply) {
-      reply({
-        ok: true,
-        config: context.config
+      //SEMATEXT BEGIN - The config fetch is customized for Sematext installation
+      // Look for config object (contains only field_mapping and color_mapping) in <index>_kibana/logtral/config id
+      // If found, merge the config object (index, fields and color mapping) with logtrail.json from local file system
+      var index = null;
+      if (request.state.kibana5_token) {
+        index = request.state.kibana5_token;
+      } else {
+        console.error("Cannot find App Token in request.")
+        reply({
+          ok: false,
+          message: "Cannot find App Token in the request"
+        });
+        return;
+      }
+      var getRequest = {
+        index: index + '_kibana',
+        type: 'logtrail',
+        id: 'config'
+      };
+      const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
+      callWithInternalUser('get',getRequest).then(function (resp) {
+        var configFromES = resp._source;
+        console.error(JSON.stringify(configFromES));
+        var config = require('../../logtrail.json');
+        var indexConfig = config.index_patterns[0];
+        indexConfig.es.default_index = index;
+        indexConfig.fields = configFromES.field_mapping;
+        indexConfig.color_mapping = configFromES.color_mapping;
+        console.error(JSON.stringify(config));
+        reply({
+          ok: true,
+          config: config
+        });
+      }).catch(function (resp) {
+        console.error("Error while fetching config ", resp)
+        reply({
+          ok: false,
+          message: "Cannot fetch logtrail configuration."
+        });
       });
-    }  
+    }
+    //SEMATEXT END
   });
 };

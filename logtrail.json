@@ -3,7 +3,7 @@
   "index_patterns" : [
     {      
       "es": {
-        "default_index": "logstash-*"
+        "default_index": null
       },
       "tail_interval_in_seconds": 10,
       "es_index_time_offset_in_seconds": 0,
@@ -13,17 +13,8 @@
       "default_time_range_in_days" : 0,
       "max_hosts": 100,
       "max_events_to_keep_in_viewer": 5000,
-      "fields" : {
-        "mapping" : {
-            "timestamp" : "@timestamp",
-            "hostname" : "hostname",
-            "program": "program",
-            "message": "syslog_message"
-        },
-        "message_format": "{{{syslog_message}}}"
-      },
-      "color_mapping" : {
-      }
+      "fields" : null,
+      "color_mapping" : null
     }  
   ]
 }

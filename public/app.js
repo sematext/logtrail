@@ -1,8 +1,8 @@
 import angular from 'angular';
 import chrome from 'ui/chrome';
 import uiRoutes from 'ui/routes';
-import { notify } from 'ui/notify';
-import { uiModules } from "ui/modules"
+import notify from 'ui/notify';
+import uiModules from "ui/modules"
 import sugarDate from 'sugar-date';
 import moment from 'moment-timezone';
 
@@ -70,13 +70,15 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       }
     }
     $http.get(chrome.addBasePath('/logtrail/config')).then(function (resp) {
-      if (resp.data.ok) {
-        config = resp.data.config;
+      if (!resp.data.ok) {
+        $scope.errorMessage = resp.data.message;
+        return
       }
-
+      $scope.errorMessage = null;
+      config = resp.data.config;
       //populate index_patterns
-      for (var i = config.index_patterns.length - 1; i >= 0; i--) {          
-        $scope.index_patterns.push(config.index_patterns[i].es.default_index);          
+      for (var i = config.index_patterns.length - 1; i >= 0; i--) {
+        $scope.index_patterns.push(config.index_patterns[i].es.default_index);
       }
       if($routeParams.i) {
         for (var i = config.index_patterns.length - 1; i >= 0; i--) {
@@ -119,7 +121,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       rangeType: rangeType,
       order: order,
       hostname: $scope.selectedHost,
-      index: selected_index_config.es.default_index
+      config: selected_index_config
     };
 
     console.debug("sending search request with params " + JSON.stringify(request));
@@ -498,7 +500,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
 
   function setupHostsList() {
     var params = {
-      index: selected_index_config.es.default_index
+      config: selected_index_config
     };
     $http.post(chrome.addBasePath('/logtrail/hosts'),params).then(function (resp) {
       if (resp.data.ok) {
