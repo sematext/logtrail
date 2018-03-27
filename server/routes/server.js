@@ -296,6 +296,10 @@ module.exports = function (server) {
         indexConfig.es.default_index = index;
         indexConfig.fields = configFromES.field_mapping;
         indexConfig.color_mapping = configFromES.color_mapping;
+        if (configFromES.default_time_range_in_days) {
+          indexConfig.default_time_range_in_days = configFromES.default_time_range_in_days;
+        }
+        console.log(JSON.stringify(config));
         reply({
           ok: true,
           config: config
