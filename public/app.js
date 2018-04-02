@@ -79,10 +79,15 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
 
   function fetchConfigAndInitialize() {
     $http.get(chrome.addBasePath('/logtrail/config')).then(function (resp) {
+      if (resp.data.notFound) {
+        $scope.settings.settingsNotFound = true;
+        $scope.showSettings();
+        return;
+      }
+      $scope.settings.settingsNotFound = false;
       if (!resp.data.ok) {
         $scope.errorMessage = resp.data.message;
-        $scope.showSettings();
-        return
+        return;
       }
       $scope.errorMessage = null;
       config = resp.data.config;
@@ -115,7 +120,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       var timestamp = Date.create($scope.pickedDateTime).getTime();
       doSearch('gt','asc', ['overwrite','scrollToTop'],timestamp);
     }
-    //startTailTimer();
+    startTailTimer();
   }
 
   /**

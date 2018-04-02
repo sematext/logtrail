@@ -298,12 +298,10 @@ module.exports = function (server) {
       }
       const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
       callWithInternalUser('index',updateRequest).then(function (resp) {
-        console.log(resp);
         reply({
           ok: true
         });
       }).catch(function (resp) {
-        console.log(resp);
         reply({
           ok: false
         });
@@ -400,7 +398,6 @@ module.exports = function (server) {
       callWithInternalUser('get',getRequest).then(function (resp) {
         if (resp.found) {
           var configFromES = resp._source;
-          console.log(JSON.stringify(resp));
           var config = require('../../logtrail.json');
           var indexConfig = config.index_patterns[0];
           indexConfig.es.default_index = index;
@@ -416,6 +413,7 @@ module.exports = function (server) {
         } else {
           reply({
             ok: false,
+            notFound: true,
             message: "Cannot find logtrail configuration"
           });
         }

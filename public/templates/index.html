@@ -4,41 +4,45 @@
     <strong>Error! </strong> {{ errorMessage }}
   </div>
   <div class='no-event-message' ng-show='events.length !== 0 && firstEventReached'>Oldest event reached.</div>
-  <div class='no-event-message' ng-show='showNoEventsMessage'>No events found.<br>
+  <div class='no-event-message' ng-show='showNoEventsMessage'>No events found.
+    <br>
     <div ng-show="isTimeRangeSearch()" class='time-range'>Time range searched: {{ noEventErrorStartTime }} to Now </div>
   </div>
   <ul class="events">
     <li id="{{ event.id }}" ng-repeat="event in events" on-last-repeat infinite-scroll>
       <time>{{ event.display_timestamp }}</time>
-      <span class='host'><a href ng-click="onHostSelected(event.hostname)">{{ event.hostname }}</a></span>
-      <span class='program'><a ng-click="onProgramClick(event.program)">{{ event.program }}:</a></span>
+      <span class='host'>
+        <a href ng-click="onHostSelected(event.hostname)">{{ event.hostname }}</a>
+      </span>
+      <span class='program'>
+        <a ng-click="onProgramClick(event.program)">{{ event.program }}:</a>
+      </span>
       <span class="message" ng-style="event.color? {color: event.color} : ''" ng-bind-html="event.message" compile-template />
     </li>
   </ul>
 
-<div class="footer">
+  <div class="footer">
     <form class="form-inline search-form" ng-submit="onSearchClick()">
       <div class="flex-container-search">
         <input type="text" ng-model="userSearchText" class="search-box form-control" ng-class="userSearchText !== null && userSearchText.length > 0 ? '' : hint"
-            placeholder='"access denied" 1.2.3.4 -sshd' title='Default search field : message'></input>
-        <div ng-hide="userSearchText !== null && userSearchText.length > 0" class="lucene-hint"><a href="https://www.elastic.co/guide/en/elasticsearch/reference/5.6/query-dsl-query-string-query.html#query-string-syntax" target="_blank">Uses lucene query syntax</a></div>
-        <button class="submit btn search-btn flex-item-search" >Search</button>
-        <button type="button" id="host-picker-btn" class="btn host-option-select-btn flex-item-search"
-          ng-click="showHostPicker()">{{selectedHost == null ? 'All Systems' : selectedHost}}</button>
-        <button type="button" id="date-picker-btn" class="time-option-select-btn btn flex-item-search"
-          ng-click="showDatePicker()">{{ isNullorEmpty(userDateTimeSeeked) ? 'Now' : userDateTimeSeeked }}</button>
+          placeholder='"access denied" 1.2.3.4 -sshd' title='Default search field : message'></input>
+        <div ng-hide="userSearchText !== null && userSearchText.length > 0" class="lucene-hint">
+          <a href="https://www.elastic.co/guide/en/elasticsearch/reference/5.6/query-dsl-query-string-query.html#query-string-syntax"
+            target="_blank">Uses lucene query syntax</a>
+        </div>
+        <button class="submit btn search-btn flex-item-search">Search</button>
+        <button type="button" id="host-picker-btn" class="btn host-option-select-btn flex-item-search" ng-click="showHostPicker()">{{selectedHost == null ? 'All Systems' : selectedHost}}</button>
+        <button type="button" id="date-picker-btn" class="time-option-select-btn btn flex-item-search" ng-click="showDatePicker()">{{ isNullorEmpty(userDateTimeSeeked) ? 'Now' : userDateTimeSeeked }}</button>
         <button type="button" id="settings-btn" class="settings-select-btn btn flex-item-search" ng-click="showSettings()">Settings</button>
       </div>
     </form>
     <div class="date-picker ng-hide" id="date-picker" click-outside>
       <form class="form-inline" ng-submit="seekAndSearch()">
         <div class="flex-container-date-picker">
-          <input class="flex-item-date-picker date-picker-box form-control" type="search"
-          placeholder='7:02 am,last friday,jun 9 1:16pm'
-          ng-model="userDateTime" ng-change="onDateChange()"></input>
+          <input class="flex-item-date-picker date-picker-box form-control" type="search" placeholder='7:02 am,last friday,jun 9 1:16pm'
+            ng-model="userDateTime" ng-change="onDateChange()"></input>
           <button class="btn flex-item-date-picker date-picker-submit-btn submit">Seek To</button>
-          <label class="flex-item-date-picker date-picker-message"
-            ng-class="{ 'date-picker-message-error' : !isNullorEmpty(userDateTime)  && (pickedDateTime == null) }">
+          <label class="flex-item-date-picker date-picker-message" ng-class="{ 'date-picker-message-error' : !isNullorEmpty(userDateTime)  && (pickedDateTime == null) }">
             {{ (isNullorEmpty(userDateTime)) ? 'Right now' : (pickedDateTime == null ? 'Cannot parse date time' : pickedDateTime)}}</label>
         </div>
       </form>
@@ -46,43 +50,53 @@
 
     <div class="host-picker ng-hide" id="host-picker" click-outside>
       <ul class="host-picker-list">
-        <li ng-repeat="host in hosts" ng-hide="hostSearchText != null && !host.includes(hostSearchText)"><a href ng-click="onHostSelected(host)">{{host}}</a></li>
-        <li> <a href ng-click="onHostSelected('*')"> [ All Systems ] </a></li>
-        <li ng-hide="hosts.length < 11"><input class="host-picker-search" type="search" name="host-search-input" ng-model="hostSearchText"/></li>
+        <li ng-repeat="host in hosts" ng-hide="hostSearchText != null && !host.includes(hostSearchText)">
+          <a href ng-click="onHostSelected(host)">{{host}}</a>
+        </li>
+        <li>
+          <a href ng-click="onHostSelected('*')"> [ All Systems ] </a>
+        </li>
+        <li ng-hide="hosts.length < 11">
+          <input class="host-picker-search" type="search" name="host-search-input" ng-model="hostSearchText" />
+        </li>
       </ul>
     </div>
-
-    <div class="settings ng-hide" id="settings">
-      <div class="title">Settings</div>
-      <form name="settingsFrom">
-          <div class="form-group col-md-6">
-              <label for="host">Host</label>
-              <select class="form-control input-medium" ng-model="settings.host" id="host" required>
-                <option ng-repeat="field in settings.hostFields" ng-value="field">{{field}}</option>
-              </select>
-          </div>
-          <div class="form-group col-md-6">
-              <label for="program">Program</label>
-              <select class="form-control input-medium" ng-model="settings.program" id="program" required>
-                  <option ng-repeat="field in settings.programFields" ng-value="field">{{field}}</option>
-              </select>
-          </div>
-          <div class="form-group col-md-12">
-            <label for="program">Message Format</label>
-            <input type="text" ng-model="settings.messageFormat" class="form-control" required>
-          </div>
-          <div class="form-group col-md-12">
-            <label for="message">Default time range to search (days)</label>
-            <input type="text" ng-model="settings.timeRange" class="form-control" required>
-          </div>
-          <button type="submit" ng-disabled="!settingsFrom.$valid" ng-click="saveSettings()" class="btn btn-primary">Save</button>
-          <button ng-click="hideSettings()" class="btn btn-warning">Close</button>
-      </form>
-    </div>
-
     <div class="pull-right live-tail-button">
       <i ng-click="toggleLiveTail()" class="fa fa-3x" ng-class="getLiveTailIcon()"></i>
     </div>
+  </div>
+
+  <div class="settings ng-hide" id="settings">
+    <div class="settings-content" >
+      <div class="title">Settings</div>
+      <p ng-show="settings.settingsNotFound" class="error">Configure settings before using Logtrail.</p>
+      <form name="settingsFrom">
+        <div class="form-group col-md-6">
+          <label for="host">Host</label>
+          <select class="form-control input-medium" ng-model="settings.host" id="host" required>
+            <option ng-repeat="field in settings.hostFields" ng-value="field">{{field}}</option>
+          </select>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="program">Program</label>
+          <select class="form-control input-medium" ng-model="settings.program" id="program" required>
+            <option ng-repeat="field in settings.programFields" ng-value="field">{{field}}</option>
+          </select>
+        </div>
+        <div class="form-group col-md-12">
+          <label for="program">Message Format
+            <small>Handlebars template to format message. Add additional event fields to show</small>
+          </label>
+          <input type="text" ng-model="settings.messageFormat" class="form-control" required>
+        </div>
+        <div class="form-group col-md-12">
+          <label for="message">Default time range to search (days)</label>
+          <input type="number" ng-model="settings.timeRange" class="form-control" required>
+        </div>
+        <button type="submit" ng-disabled="!settingsFrom.$valid" ng-click="saveSettings()" class="btn btn-primary">Save</button>
+        <button ng-hide="settings.settingsNotFound" ng-click="hideSettings()" class="btn btn-warning">Close</button>
+      </form>
     </div>
-</div>
+  </div>
+
 </div>
