@@ -177,9 +177,9 @@ module.exports = function (server) {
           }
         };
         var hostnameField = selected_config.fields.mapping.hostname;
-        //if (selected_config.fields['hostname.keyword']) {
+        if (selected_config.fields['hostname_keyword']) {
           hostnameField += '.raw';
-        //}
+        }
         termQuery.term[hostnameField] = request.payload.hostname;
         searchRequest.body.query.bool.filter.bool.must.push(termQuery);
       }
@@ -227,9 +227,9 @@ module.exports = function (server) {
       var selected_config = request.payload.config;
 
       var hostnameField = selected_config.fields.mapping.hostname;
-      //if (selected_config.fields['hostname.keyword']) {
+      if (selected_config.fields['hostname_keyword']) {
         hostnameField += '.raw';
-      //}
+      }
       var hostAggRequest = {
         index: selected_config.es.default_index,
         body : {
@@ -266,6 +266,114 @@ module.exports = function (server) {
   });
 
   server.route({
+    method: "POST",
+    path: '/logtrail/settings',
+    handler: function (request, reply) {
+      var settings = request.payload;
+      var host = settings.host;
+      var raw = false;
+      if (host.endsWith('.raw')) {
+        settings.host = host.substring(0, host.indexOf('.raw'));
+        raw = true;
+      }
+      var updateRequest = {
+        index: request.state.kibana5_token + "_kibana",
+        type: 'logtrail',
+        id: 'config',
+        body: {
+            default_time_range_in_days: settings.timeRange,
+            field_mapping: {
+              mapping: {
+                timestamp: '@timestamp',
+                hostname: settings.host,
+                program: settings.program,
+                message: 'message',
+              },
+              message_format: settings.messageFormat
+          }
+        }
+      }
+      if (raw) {
+        updateRequest.body.field_mapping['hostname_keyword'] = host;
+      }
+      const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
+      callWithInternalUser('index',updateRequest).then(function (resp) {
+        console.log(resp);
+        reply({
+          ok: true
+        });
+      }).catch(function (resp) {
+        console.log(resp);
+        reply({
+          ok: false
+        });
+      });
+    }
+  });
+
+  server.route({
+    method: "GET",
+    path: '/logtrail/settings',
+    handler: async function (request, reply) {
+      var index = null;
+      if (request.state.kibana5_token) {
+        index = request.state.kibana5_token;
+      } else {
+        console.error("Cannot find App Token in request.")
+        reply({
+          ok: false,
+          message: "Cannot find App Token in the request"
+        });
+        return;
+      }
+
+      var indicesToSearch = await getIndicesToSearch(index, "@timestamp", null, request, server);
+      if (indicesToSearch.length > 0) {
+        var latestIndex = indicesToSearch[0];
+        var mappingRequest = {
+          index: latestIndex
+        }
+        const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
+        callWithInternalUser('indices.getMapping',mappingRequest).then(function (resp) {
+          for (var index in resp) {
+            var properties = resp[index].mappings["logsene_type"].properties;
+            //Known mappings
+            var knownFields = ["@timestamp","@timestamp_received","message","logsene_original_type"];
+            var fields = [];
+            for (var p in properties) {
+              if (knownFields.indexOf(p) === -1) {
+                var field = {
+                  name: p,
+                  type: properties[p].type
+                }
+
+                if (properties[p].fields) {
+                  if (properties[p].fields.raw) {
+                    field.rawType = properties[p].fields.raw.type
+                  }
+                }
+                fields.push(field);
+              }
+            }
+            reply({
+              ok: true,
+              fields: fields
+            });
+            return;
+          }
+        }).catch(function (resp) {
+          console.error("Error while fetching fields ", resp)
+          reply({
+            ok: false,
+            message: "Cannot fetch settings info"
+          });
+          return;
+        });
+      }
+    }
+  });
+
+  server.route({
     method: 'GET',
     path: '/logtrail/config',
     handler: function (request, reply) {
@@ -290,20 +398,27 @@ module.exports = function (server) {
       };
       const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
       callWithInternalUser('get',getRequest).then(function (resp) {
-        var configFromES = resp._source;
-        var config = require('../../logtrail.json');
-        var indexConfig = config.index_patterns[0];
-        indexConfig.es.default_index = index;
-        indexConfig.fields = configFromES.field_mapping;
-        indexConfig.color_mapping = configFromES.color_mapping;
-        if (configFromES.default_time_range_in_days) {
-          indexConfig.default_time_range_in_days = configFromES.default_time_range_in_days;
+        if (resp.found) {
+          var configFromES = resp._source;
+          console.log(JSON.stringify(resp));
+          var config = require('../../logtrail.json');
+          var indexConfig = config.index_patterns[0];
+          indexConfig.es.default_index = index;
+          indexConfig.fields = configFromES.field_mapping;
+          indexConfig.color_mapping = configFromES.color_mapping;
+          if (configFromES.default_time_range_in_days) {
+            indexConfig.default_time_range_in_days = configFromES.default_time_range_in_days;
+          }
+          reply({
+            ok: true,
+            config: config
+          });
+        } else {
+          reply({
+            ok: false,
+            message: "Cannot find logtrail configuration"
+          });
         }
-        console.log(JSON.stringify(config));
-        reply({
-          ok: true,
-          config: config
-        });
       }).catch(function (resp) {
         console.error("Error while fetching config ", resp)
         reply({
@@ -328,23 +443,39 @@ function getIndicesToSearch(index, timestampField, fromTimestamp, request, serve
         }
       }
     };
-    var constraints = {
-      max_value: {
-        gte: fromTimestamp,
-        format: "epoch_millis"
+    if (fromTimestamp) {
+      var constraints = {
+        max_value: {
+          gte: fromTimestamp,
+          format: "epoch_millis"
+        }
       }
+      fieldStatsRequest.body.index_constraints[timestampField] = constraints;
+    } else {
+      delete fieldStatsRequest.body.index_constraints;
     }
-    fieldStatsRequest.body.index_constraints[timestampField] = constraints;
+    
     callWithRequest(request,'fieldStats',fieldStatsRequest).then(function (resp) {
       var indicesToSearch = [];
+      var items = [];
       if (resp.indices) {
         for (var index in resp.indices) {
-          indicesToSearch.push(index);
+          var item = {
+            index: index,
+            max_value : resp.indices[index].fields[timestampField].max_value
+          }
+          items.push(item);
+        }
+        items.sort(function (i1, i2) {
+          return i2.max_value - i1.max_value;
+        });
+        for (var i=0; i < items.length; i++) {
+          indicesToSearch.push(items[i].index);
         }
       }
       resolve(indicesToSearch);
     }).catch(function (resp) {
-      console.error("Error while fetch timestamp stats:" + JSON.stringify(resp));
+      console.error("Error while fetch indices to search:" + JSON.stringify(resp));
       resolve(null);
     });
   });

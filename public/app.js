@@ -41,6 +41,10 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   $scope.index_patterns = [];
   $scope.selected_index_pattern = null;
   $scope.popup = null;
+  $scope.settings = {
+    messageFormat: "{{{ message }}}",
+    timeRange: 10
+  };
   var updateViewInProgress = false;
   var tailTimer = null;
   var searchText = null;
@@ -69,9 +73,15 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
         $scope.userDateTimeSeeked = $routeParams.t;
       }
     }
+    fetchConfigAndInitialize();
+    
+  };
+
+  function fetchConfigAndInitialize() {
     $http.get(chrome.addBasePath('/logtrail/config')).then(function (resp) {
       if (!resp.data.ok) {
         $scope.errorMessage = resp.data.message;
+        $scope.showSettings();
         return
       }
       $scope.errorMessage = null;
@@ -94,7 +104,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       $scope.selected_index_pattern = selected_index_config.es.default_index;
       initialize();
     });
-  };
+  }
 
   function initialize() {
     //Initialize app views on validate successful
@@ -105,7 +115,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       var timestamp = Date.create($scope.pickedDateTime).getTime();
       doSearch('gt','asc', ['overwrite','scrollToTop'],timestamp);
     }
-    startTailTimer();
+    //startTailTimer();
   }
 
   /**
@@ -364,29 +374,6 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     $scope.onSearchClick();
   };
 
-  $scope.onSettingsChange = function () {
-    if ($scope.selected_index_pattern !== selected_index_config.es.default_index) {
-      for (var i = config.index_patterns.length - 1; i >= 0; i--) {
-        if (config.index_patterns[i].es.default_index === $scope.selected_index_pattern) {
-          selected_index_config = config.index_patterns[i];
-          break;
-        }
-      }
-    }
-    angular.element('#settings').addClass('ng-hide');
-    //reset index specific states. 
-    // Other fields will be overwritten on successful search
-    $scope.events = [];
-    eventIds.clear();
-    $scope.selectedHost = null; //all systems
-    $scope.hosts = null;
-    $scope.errorMessage = null;
-    $scope.hostSearchText = null;
-
-    setupHostsList();
-    $scope.onSearchClick();
-  };
-
   $scope.isNullorEmpty = function (string) {
     return string == null || string === '';
   };
@@ -440,6 +427,50 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     }
   };
 
+  $scope.showSettings = function () {
+    $http.get(chrome.addBasePath('/logtrail/settings')).then(function (resp) {
+      if (resp.data.ok) {
+         var hostFields = [];
+         var programFields = [];
+         for (let field of resp.data.fields) {
+           programFields.push(field.name);
+           if (field.type === 'keyword') {
+            hostFields.push(field.name);
+           }
+           if (field.rawType && field.rawType === 'keyword') {
+            hostFields.push(field.name + '.raw');
+           }
+         }
+         $scope.settings['hostFields'] = hostFields;
+         $scope.settings['programFields'] = programFields;
+         if (selected_index_config) {
+          $scope.settings.host = selected_index_config.fields.mapping.hostname;
+          if (selected_index_config.fields.hostname_keyword) {
+            $scope.settings.host = selected_index_config.fields.hostname_keyword;
+          }
+          $scope.settings.program = selected_index_config.fields.mapping.program;
+          $scope.settings.messageFormat = selected_index_config.fields.message_format;
+          $scope.settings.timeRange = selected_index_config.default_time_range_in_days;
+         }
+         angular.element('#settings').removeClass("ng-hide");
+      } else {
+
+      }
+    });
+  }
+
+  $scope.saveSettings = function () {
+    $http.post(chrome.addBasePath('/logtrail/settings'),$scope.settings).then(function (resp) {
+      angular.element("#settings").addClass("ng-hide");
+      resetData();
+      fetchConfigAndInitialize();
+    });
+  }
+
+  $scope.hideSettings = function() {
+    angular.element("#settings").addClass("ng-hide");
+  };
+
   angular.element($window).bind('scroll', function (event) {
 
     if (!updateViewInProgress) {
@@ -484,6 +515,9 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   };
 
   function startTailTimer() {
+    if (tailTimer) {
+      stopTailTimer();
+    }
     if (config != null) {
       tailTimer = $interval(doTail,(selected_index_config.tail_interval_in_seconds * 1000));
       $scope.$on('$destroy', function () {
@@ -514,7 +548,40 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
         $scope.errorMessage = 'Exception while fetching hosts : ' + resp.data.resp.msg;
       }
     });
+  };
+
+  function resetData() {
+    $scope.events = [];
+    eventIds.clear();
+    $scope.selectedHost = null; //all systems
+    $scope.hosts = null;
+    $scope.errorMessage = null;
+    $scope.hostSearchText = null;
+    selected_index_config = null;
   }
+
+  function onSettingsChange() {
+    if ($scope.selected_index_pattern !== selected_index_config.es.default_index) {
+      for (var i = config.index_patterns.length - 1; i >= 0; i--) {
+        if (config.index_patterns[i].es.default_index === $scope.selected_index_pattern) {
+          selected_index_config = config.index_patterns[i];
+          break;
+        }
+      }
+    }
+    angular.element('#settings').addClass('ng-hide');
+    //reset index specific states. 
+    // Other fields will be overwritten on successful search
+    $scope.events = [];
+    eventIds.clear();
+    $scope.selectedHost = null; //all systems
+    $scope.hosts = null;
+    $scope.errorMessage = null;
+    $scope.hostSearchText = null;
+
+    setupHostsList();
+    $scope.onSearchClick();
+  };
 
   init();
 });
@@ -542,8 +609,7 @@ uiModules.get('app/logtrail').directive('clickOutside', function ($document) {
               scope.popup.addClass('ng-hide');
             }
             if (e.target.id === 'date-picker-btn' ||
-                e.target.id === 'host-picker-btn' ||
-                e.target.id === 'settings-btn') {
+                e.target.id === 'host-picker-btn') {
               scope.popup = angular.element('#' + e.target.id.replace('-btn','')).removeClass('ng-hide');
             }
         }

@@ -27,8 +27,7 @@
           ng-click="showHostPicker()">{{selectedHost == null ? 'All Systems' : selectedHost}}</button>
         <button type="button" id="date-picker-btn" class="time-option-select-btn btn flex-item-search"
           ng-click="showDatePicker()">{{ isNullorEmpty(userDateTimeSeeked) ? 'Now' : userDateTimeSeeked }}</button>
-        <button type="button" id="settings-btn" class="settings-select-btn btn flex-item-search"
-          ng-click="showSettings()">Settings</button>
+        <button type="button" id="settings-btn" class="settings-select-btn btn flex-item-search" ng-click="showSettings()">Settings</button>
       </div>
     </form>
     <div class="date-picker ng-hide" id="date-picker" click-outside>
@@ -53,15 +52,31 @@
       </ul>
     </div>
 
-    <div class="settings ng-hide" id="settings" click-outside>
-      <form class="form-inline" ng-submit="onSettingsChange()">
-        <div class="flex-container-settings">
-          <label class="flex-item-settings">Index Pattern</label>
-          <select class="flex-item-settings" ng-model="selected_index_pattern">
-            <option ng-repeat="index in index_patterns" ng-value="index">{{index}}</option>
-          </select>
-          <button class="btn flex-item-settings submit">Ok</button>
-        </div>
+    <div class="settings ng-hide" id="settings">
+      <div class="title">Settings</div>
+      <form name="settingsFrom">
+          <div class="form-group col-md-6">
+              <label for="host">Host</label>
+              <select class="form-control input-medium" ng-model="settings.host" id="host" required>
+                <option ng-repeat="field in settings.hostFields" ng-value="field">{{field}}</option>
+              </select>
+          </div>
+          <div class="form-group col-md-6">
+              <label for="program">Program</label>
+              <select class="form-control input-medium" ng-model="settings.program" id="program" required>
+                  <option ng-repeat="field in settings.programFields" ng-value="field">{{field}}</option>
+              </select>
+          </div>
+          <div class="form-group col-md-12">
+            <label for="program">Message Format</label>
+            <input type="text" ng-model="settings.messageFormat" class="form-control" required>
+          </div>
+          <div class="form-group col-md-12">
+            <label for="message">Default time range to search (days)</label>
+            <input type="text" ng-model="settings.timeRange" class="form-control" required>
+          </div>
+          <button type="submit" ng-disabled="!settingsFrom.$valid" ng-click="saveSettings()" class="btn btn-primary">Save</button>
+          <button ng-click="hideSettings()" class="btn btn-warning">Close</button>
       </form>
     </div>
 
