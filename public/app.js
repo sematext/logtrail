@@ -520,6 +520,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   };
 
   function resetData() {
+    updateViewInProgress = true;
     $scope.events = [];
     eventIds.clear();
     $scope.selectedHost = null; //all systems

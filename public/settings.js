@@ -20,8 +20,13 @@ app.controller('SettingsController', function($scope, $http) {
 
   $scope.saveSettings = function () {
     $http.post(chrome.addBasePath('/logtrail/settings'),$scope.settings).then(function (resp) {
-      angular.element("#settings").addClass("ng-hide");
-      $scope.$emit("settings-saved");
+      if (resp.data.ok) {
+        angular.element("#settings").addClass("ng-hide");
+        $scope.$emit("settings-saved");
+      } else {
+        console.error("Cannot update settings " + JSON.stringify(resp));
+        $scope.$parent.errorMessage = "Cannot update settings!";
+      }
     });
   }
 
@@ -54,7 +59,8 @@ app.controller('SettingsController', function($scope, $http) {
          }
          angular.element('#settings').removeClass("ng-hide");
       } else {
-
+        $scope.$parent.errorMessage = "Cannot fetch settings!"
+        console.error("Error while fetching settings" + JSON.stringify(resp));
       }
     });
   }
