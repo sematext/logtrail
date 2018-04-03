@@ -2,7 +2,7 @@ import angular from 'angular';
 import chrome from 'ui/chrome';
 import uiRoutes from 'ui/routes';
 import notify from 'ui/notify';
-import uiModules from "ui/modules"
+import uiModules from "ui/modules";
 import sugarDate from 'sugar-date';
 import moment from 'moment-timezone';
 
@@ -10,6 +10,7 @@ import 'ui/autoload/styles';
 import 'plugins/logtrail/css/main.css';
 
 import template from './templates/index.html';
+require('plugins/logtrail/settings');
 
 const app = uiModules.get('app/logtrail', []);
 
@@ -41,10 +42,6 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   $scope.index_patterns = [];
   $scope.selected_index_pattern = null;
   $scope.popup = null;
-  $scope.settings = {
-    messageFormat: "{{{ message }}}",
-    timeRange: 10
-  };
   var updateViewInProgress = false;
   var tailTimer = null;
   var searchText = null;
@@ -80,11 +77,9 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   function fetchConfigAndInitialize() {
     $http.get(chrome.addBasePath('/logtrail/config')).then(function (resp) {
       if (resp.data.notFound) {
-        $scope.settings.settingsNotFound = true;
-        $scope.showSettings();
+        $scope.showSettings(true);
         return;
       }
-      $scope.settings.settingsNotFound = false;
       if (!resp.data.ok) {
         $scope.errorMessage = resp.data.message;
         return;
@@ -432,49 +427,18 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     }
   };
 
-  $scope.showSettings = function () {
-    $http.get(chrome.addBasePath('/logtrail/settings')).then(function (resp) {
-      if (resp.data.ok) {
-         var hostFields = [];
-         var programFields = [];
-         for (let field of resp.data.fields) {
-           programFields.push(field.name);
-           if (field.type === 'keyword') {
-            hostFields.push(field.name);
-           }
-           if (field.rawType && field.rawType === 'keyword') {
-            hostFields.push(field.name + '.raw');
-           }
-         }
-         $scope.settings['hostFields'] = hostFields;
-         $scope.settings['programFields'] = programFields;
-         if (selected_index_config) {
-          $scope.settings.host = selected_index_config.fields.mapping.hostname;
-          if (selected_index_config.fields.hostname_keyword) {
-            $scope.settings.host = selected_index_config.fields.hostname_keyword;
-          }
-          $scope.settings.program = selected_index_config.fields.mapping.program;
-          $scope.settings.messageFormat = selected_index_config.fields.message_format;
-          $scope.settings.timeRange = selected_index_config.default_time_range_in_days;
-         }
-         angular.element('#settings').removeClass("ng-hide");
-      } else {
-
-      }
-    });
+  $scope.showSettings = function (settingsNotFound) {
+    var params = {
+      selected_index_config: selected_index_config,
+      settingsNotFound: settingsNotFound
+    }
+    $scope.$broadcast("show-settings", params);
   }
 
-  $scope.saveSettings = function () {
-    $http.post(chrome.addBasePath('/logtrail/settings'),$scope.settings).then(function (resp) {
-      angular.element("#settings").addClass("ng-hide");
-      resetData();
-      fetchConfigAndInitialize();
-    });
-  }
-
-  $scope.hideSettings = function() {
-    angular.element("#settings").addClass("ng-hide");
-  };
+  $scope.$on("settings-saved", function() {
+    resetData();
+    fetchConfigAndInitialize();
+  });
 
   angular.element($window).bind('scroll', function (event) {
 
@@ -575,14 +539,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       }
     }
     angular.element('#settings').addClass('ng-hide');
-    //reset index specific states. 
-    // Other fields will be overwritten on successful search
-    $scope.events = [];
-    eventIds.clear();
-    $scope.selectedHost = null; //all systems
-    $scope.hosts = null;
-    $scope.errorMessage = null;
-    $scope.hostSearchText = null;
+    resetData();
 
     setupHostsList();
     $scope.onSearchClick();
@@ -590,6 +547,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
 
   init();
 });
+
 
 //Directive to manage scroll during launch and on new events
 uiModules.get('app/logtrail').directive('onLastRepeat', function () {

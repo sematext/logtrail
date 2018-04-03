@@ -1,4 +1,5 @@
 var serverRoute = require('./server/routes/server');
+var settingsRoute = require('./server/routes/settings');
 module.exports = function (kibana) {
   return new kibana.Plugin({
     name: 'logtrail',
@@ -22,6 +23,7 @@ module.exports = function (kibana) {
     init: function (server, options) {
       // Add server routes and initalize the plugin here
       serverRoute(server);
+      settingsRoute(server);
     }
 
   });

@@ -33,7 +33,7 @@
         <button class="submit btn search-btn flex-item-search">Search</button>
         <button type="button" id="host-picker-btn" class="btn host-option-select-btn flex-item-search" ng-click="showHostPicker()">{{selectedHost == null ? 'All Systems' : selectedHost}}</button>
         <button type="button" id="date-picker-btn" class="time-option-select-btn btn flex-item-search" ng-click="showDatePicker()">{{ isNullorEmpty(userDateTimeSeeked) ? 'Now' : userDateTimeSeeked }}</button>
-        <button type="button" id="settings-btn" class="settings-select-btn btn flex-item-search" ng-click="showSettings()">Settings</button>
+        <button type="button" id="settings-btn" class="settings-select-btn btn flex-item-search" ng-click="showSettings(false)">Settings</button>
       </div>
     </form>
     <div class="date-picker ng-hide" id="date-picker" click-outside>
@@ -66,7 +66,7 @@
     </div>
   </div>
 
-  <div class="settings ng-hide" id="settings">
+  <div class="settings ng-hide" id="settings" ng-controller="SettingsController">
     <div class="settings-content" >
       <div class="title">Settings</div>
       <p ng-show="settings.settingsNotFound" class="error">Configure settings before using Logtrail.</p>
@@ -84,14 +84,14 @@
           </select>
         </div>
         <div class="form-group col-md-12">
-          <label for="program">Message Format
-            <small>Handlebars template to format message. Add additional event fields to show</small>
+          <label for="messageFormat">Message Format
+            <small>Handlebars template to format message.<br> Example: <code ng-non-bindable>{{{className}}} - {{{thread}}} - {{{message}}}</code></small>
           </label>
-          <input type="text" ng-model="settings.messageFormat" class="form-control" required>
+          <input id="messageFormat" type="text" ng-model="settings.messageFormat" class="form-control" required>
         </div>
         <div class="form-group col-md-12">
           <label for="message">Default time range to search (days)</label>
-          <input type="number" ng-model="settings.timeRange" class="form-control" required>
+          <input type="number" min="1" max="30" ng-model="settings.timeRange" class="form-control" required>
         </div>
         <button type="submit" ng-disabled="!settingsFrom.$valid" ng-click="saveSettings()" class="btn btn-primary">Save</button>
         <button ng-hide="settings.settingsNotFound" ng-click="hideSettings()" class="btn btn-warning">Close</button>
