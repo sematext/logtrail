@@ -427,8 +427,9 @@ html,body {
 }
 
 .lucene-hint {
-	position: fixed;
-	left: 60em;
+	position: relative;
+	left: -12.3em;
+	margin-right: -11.8em;
 }
 
 .settings-content .title {

@@ -141,7 +141,8 @@ module.exports = function (server) {
                     query_string : {
                       analyze_wildcard: true,
                       default_field : selected_config.fields.mapping['message'],
-                      query : searchText
+                      query : searchText,
+                      default_operator: 'AND'
                     }
                 },
                 filter: {
@@ -223,17 +224,29 @@ module.exports = function (server) {
   server.route({
     method: ['POST'],
     path: '/logtrail/hosts',
-    handler: function (request,reply) {
+    handler: async function (request,reply) {
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       var index = request.payload.index;
       var selected_config = request.payload.config;
+      var moment = require('moment');
+      var timestamp = moment().subtract(
+            selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
+          
+      var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, 
+        selected_config.fields.mapping.timestamp, timestamp, request, server);
+      if (!indicesToSearch || indicesToSearch.length === 0) {
+        reply({
+          ok: false,
+          message: "Empty indices to search."
+        });
+      }
 
       var hostnameField = selected_config.fields.mapping.hostname;
       if (selected_config.fields['hostname_keyword']) {
         hostnameField += '.raw';
       }
       var hostAggRequest = {
-        index: selected_config.es.default_index,
+        index: indicesToSearch.join(","),
         body : {
           size: 0,
           aggs: {
@@ -246,9 +259,9 @@ module.exports = function (server) {
           }
         }
       };
-
+      //console.log(JSON.stringify(hostAggRequest));
       callWithRequest(request,'search',hostAggRequest).then(function (resp) {
-        //console.log(JSON.stringify(resp));//.aggregations.hosts.buckets);
+      //console.log(JSON.stringify(resp));//.aggregations.hosts.buckets);
         reply({
           ok: true,
           resp: resp.aggregations.hosts.buckets
