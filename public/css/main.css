@@ -428,8 +428,13 @@ html,body {
 
 .lucene-hint {
 	position: relative;
-	left: -12.3em;
-	margin-right: -11.8em;
+	left: -13em;
+	margin-right: -12.7em;
+	font-size: medium;
+}
+
+.lucene-hint a span {
+	font-size: large;
 }
 
 .settings-content .title {

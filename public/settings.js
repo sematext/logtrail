@@ -4,7 +4,6 @@ import chrome from 'ui/chrome';
 const app = uiModules.get('app/logtrail', []);
 
 app.controller('SettingsController', function($scope, $http) {
-
   $scope.settings = {
     messageFormat: "{{{ message }}}",
     timeRange: 10
@@ -29,6 +28,13 @@ app.controller('SettingsController', function($scope, $http) {
       }
     });
   }
+
+  //listener to process Esc in settings modal
+  document.addEventListener("keypress", function(event) {
+    if (event.keyCode === 27) {
+      $scope.hideSettings();
+    }
+  }, false);
 
   function showSettings(args) {
     var selected_index_config = args.selected_index_config;
