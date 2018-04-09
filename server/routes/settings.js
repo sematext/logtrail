@@ -1,5 +1,6 @@
 var utils = require('./utils.js');
 
+// Save settings
 module.exports = function (server) {
   server.route({
     method: "POST",
@@ -12,6 +13,18 @@ module.exports = function (server) {
         settings.host = host.substring(0, host.indexOf('.raw'));
         raw = true;
       }
+      //verify template 
+      var handlebar = require('handlebars');
+      try {
+        handlebar.precompile(settings.messageFormat);
+      } catch(e) {
+        reply({
+          ok: false,
+          message: "Invalid message format - " + e.message
+        });
+        return;
+      }
+      
       var updateRequest = {
         index: request.state.kibana5_token + "_kibana",
         type: 'logtrail',
@@ -39,7 +52,8 @@ module.exports = function (server) {
         });
       }).catch(function (resp) {
         reply({
-          ok: false
+          ok: false,
+          message: resp
         });
       });
     }
