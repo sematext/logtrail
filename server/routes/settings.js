@@ -86,23 +86,9 @@ module.exports = function (server) {
           for (var index in resp) {
             var properties = resp[index].mappings["logsene_type"].properties;
             //Known mappings
-            var knownFields = ["@timestamp","@timestamp_received","message","logsene_original_type"];
+            var ignoreFields = ["@timestamp","@timestamp_received","message","logsene_original_type"];
             var fields = [];
-            for (var p in properties) {
-              if (knownFields.indexOf(p) === -1) {
-                var field = {
-                  name: p,
-                  type: properties[p].type
-                }
-
-                if (properties[p].fields) {
-                  if (properties[p].fields.raw) {
-                    field.rawType = properties[p].fields.raw.type
-                  }
-                }
-                fields.push(field);
-              }
-            }
+            getFieldMappings (properties, fields, ignoreFields, null);
             reply({
               ok: true,
               fields: fields
@@ -121,13 +107,38 @@ module.exports = function (server) {
     }
   });
 
+  function getFieldMappings(properties, fieldsArray, ignoreFields, parentField) {
+    for (var p in properties) {
+      var name = p;
+      if (parentField) {
+        name = parentField + "." + p;
+      }
+      if (ignoreFields.indexOf(p) === -1) {
+        //nested
+        if (properties[p].properties) {
+          getFieldMappings(properties[p].properties, fieldsArray, ignoreFields,name);
+        } else {
+          
+          var field = {
+            name: name,
+            type: properties[p].type
+          }
+
+          if (properties[p].fields) {
+            if (properties[p].fields.raw) {
+              field.rawType = properties[p].fields.raw.type
+            }
+          }
+          fieldsArray.push(field);
+        }
+      }
+    }
+  }
+
   server.route({
     method: 'GET',
     path: '/logtrail/config',
     handler: function (request, reply) {
-      //SEMATEXT BEGIN - The config fetch is customized for Sematext installation
-      // Look for config object (contains only field_mapping and color_mapping) in <index>_kibana/logtral/config id
-      // If found, merge the config object (index, fields and color mapping) with logtrail.json from local file system
       var index = null;
       if (request.state.kibana5_token) {
         index = request.state.kibana5_token;
@@ -175,6 +186,5 @@ module.exports = function (server) {
         });
       });
     }
-    //SEMATEXT END
   });
 }

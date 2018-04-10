@@ -207,10 +207,10 @@ module.exports = function (server) {
           resp: convertToClientFormat(selected_config, resp)
         });
       }).catch(function (resp) {
+        console.error("Error while executing search",resp);
         if (resp.isBoom) {
           reply(resp);
         } else {
-          console.error("Error while executing search",resp);
           reply({
             ok: false,
             resp: resp

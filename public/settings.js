@@ -66,8 +66,12 @@ app.controller('SettingsController', function($scope, $http) {
          } else {
           if (args.settingsNotFound) {
             //pre-populate dialog if host and source fields are present
-            if (hostFields.indexOf("host") !== -1) {
-              $scope.settings.host = "host";
+            var predefinedHostFields = ["beat.hostname.raw","host"];
+            for (let predefinedHostField of predefinedHostFields) {
+              if (hostFields.indexOf(predefinedHostField) !== -1) {
+                $scope.settings.host = predefinedHostField;
+                break;
+              }
             }
             if (programFields.indexOf("source") !== -1) {
               $scope.settings.program = "source";
