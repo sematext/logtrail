@@ -37,7 +37,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   $scope.selectedHost = null;
   $scope.firstEventReached = false;
   $scope.errorMessage = null;
-  $scope.noEventErrorStartTime = null;
+  $scope.searchRangeStartTime = null;
   $scope.showNoEventsMessage = false;
   $scope.index_patterns = [];
   $scope.selected_index_pattern = null;
@@ -279,17 +279,21 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
 
     if ($scope.events != null && $scope.events.length === 0) {
       $scope.showNoEventsMessage = true;
-      if ($scope.pickedDateTime != null) {
-        var timestamp = Date.create($scope.pickedDateTime).getTime();
-        $scope.noEventErrorStartTime = moment(timestamp).format('MMMM Do YYYY, h:mm:ss a');
-      } else {
-        if (selected_index_config.default_time_range_in_days !== 0) {
-          $scope.noEventErrorStartTime = moment().subtract(
-            selected_index_config.default_time_range_in_days,'days').startOf('day').format('MMMM Do YYYY, h:mm:ss a');
-        }
+    }
+    updateSearchStartTime();
+  };
+
+  function updateSearchStartTime() {
+    if ($scope.pickedDateTime != null) {
+      var timestamp = Date.create($scope.pickedDateTime).getTime();
+      $scope.searchRangeStartTime = moment(timestamp).format('MMMM Do YYYY, h:mm:ss a');
+    } else {
+      if (selected_index_config.default_time_range_in_days !== 0) {
+        $scope.searchRangeStartTime = moment().subtract(
+          selected_index_config.default_time_range_in_days,'days').startOf('day').format('MMMM Do YYYY, h:mm:ss a');
       }
     }
-  };
+  }
 
   function trimEvents(append) {
     var eventCount = $scope.events.length;
@@ -340,7 +344,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     }
   };
 
-  $scope.resetDatePicker = function () {    
+  $scope.resetDatePicker = function () {
     if ($scope.pickedDateTime == null) {
       $scope.userDateTime = null;
     }

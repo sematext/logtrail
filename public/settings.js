@@ -30,7 +30,7 @@ app.controller('SettingsController', function($scope, $http) {
   }
 
   //listener to process Esc in settings modal
-  document.addEventListener("keypress", function(event) {
+  document.addEventListener("keyup", function(event) {
     if (event.keyCode === 27) {
       $scope.hideSettings();
     }

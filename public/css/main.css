@@ -190,6 +190,7 @@ html,body {
 .host-picker-search {
 	border: 2px solid #84BACC;
 	background: white;
+	width: 90%;
 }
 
 

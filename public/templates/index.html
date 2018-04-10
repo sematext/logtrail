@@ -3,10 +3,13 @@
     <a ng-click="errorMessage = null" class="close" data-dismiss="alert" aria-label="close">&times;</a>
     <strong>Error :  </strong> {{ errorMessage }}
   </div>
-  <div class='no-event-message' ng-show='events.length !== 0 && firstEventReached'>Oldest event reached.</div>
+  <div class='no-event-message' ng-show='events.length !== 0 && firstEventReached'>Oldest event reached.
+    <br>
+    <div ng-show="isTimeRangeSearch()" class='time-range'>Time range searched: {{ searchRangeStartTime }} to Now </div>
+  </div>
   <div class='no-event-message' ng-show='showNoEventsMessage'>No events found.
     <br>
-    <div ng-show="isTimeRangeSearch()" class='time-range'>Time range searched: {{ noEventErrorStartTime }} to Now </div>
+    <div ng-show="isTimeRangeSearch()" class='time-range'>Time range searched: {{ searchRangeStartTime }} to Now </div>
   </div>
   <ul class="events">
     <li id="{{ event.id }}" ng-repeat="event in events" on-last-repeat infinite-scroll>
@@ -51,15 +54,11 @@
 
     <div class="host-picker ng-hide" id="host-picker" click-outside>
       <ul class="host-picker-list">
-        <li ng-repeat="host in hosts" ng-hide="hostSearchText != null && !host.includes(hostSearchText)">
-          <a href ng-click="onHostSelected(host)">{{host}}</a>
-        </li>
-        <li>
-          <a href ng-click="onHostSelected('*')"> [ All Systems ] </a>
-        </li>
-        <li ng-hide="hosts.length < 11">
-          <input class="host-picker-search" type="search" name="host-search-input" ng-model="hostSearchText" />
-        </li>
+        <li ng-repeat="host in hosts" ng-hide="hostSearchText != null && !host.includes(hostSearchText)"><a href ng-click="onHostSelected(host)">{{host}}</a></li>       
+      </ul>
+      <ul class="host-picker-list">
+        <li> <a href ng-click="onHostSelected('*')"> [ All Systems ] </a></li>
+        <li ng-hide="hosts.length < 11"><input class="host-picker-search" type="search" name="host-search-input" ng-model="hostSearchText"/></li>
       </ul>
     </div>
     <div class="pull-right live-tail-button">
@@ -70,7 +69,6 @@
   <div class="settings ng-hide" id="settings" ng-controller="SettingsController" escape-settings>
     <div class="settings-content">
       <div class="title">Settings</div>
-      <p ng-show="settings.settingsNotFound" class="error">Configure settings before using Logtrail.</p>
       <form name="settingsFrom" >
         <div class="form-group col-md-6">
           <label for="host">Host</label>
