@@ -17,6 +17,7 @@ exports.getIndicesToSearch = function(index, timestampField, fromTimestamp, requ
           format: "epoch_millis"
         }
       }
+      server.log(['logtrail','debug'],"Searching for indices from " + new Date(fromTimestamp));
       fieldStatsRequest.body.index_constraints[timestampField] = constraints;
     } else {
       delete fieldStatsRequest.body.index_constraints;
@@ -42,7 +43,7 @@ exports.getIndicesToSearch = function(index, timestampField, fromTimestamp, requ
       }
       resolve(indicesToSearch);
     }).catch(function (resp) {
-      console.error("Error while fetch indices to search:" + JSON.stringify(resp));
+      server.log(['logtrail','error'],"Error while fetch indices to search:" + JSON.stringify(resp));
       resolve(null);
     });
   });

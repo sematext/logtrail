@@ -1,3 +1,1 @@
-* Explain how it operates in multiple timezones
-* Add warning saying Kibana plugins are not officially supported in currently
-* Add context based URL routing, so URL copy & paste will work
+Known issue : If the Live Tail is paused for long time and new logs in the means tim exceeds configured `max_buckets` , live tail won't catch up with latest events. Workaround: Refresh/Reload UI or hit *Search* again

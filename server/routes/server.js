@@ -94,6 +94,15 @@ function convertToClientFormat(selected_config, esResponse) {
   return clientResponse;
 }
 
+function getTimestampFromDefaultTimeRange(selected_config) {
+  var timestamp = 0;
+  if (selected_config.default_time_range_in_days !== 0) {
+    var moment = require('moment');
+    timestamp = moment().subtract(
+      selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
+  }
+  return timestamp;
+}
 
 module.exports = function (server) {
   //Search
@@ -113,20 +122,22 @@ module.exports = function (server) {
       var timestamp = request.payload.timestamp;
       var rangeType = request.payload.rangeType;
       if (timestamp == null) {
-        if (selected_config.default_time_range_in_days !== 0) {
-          var moment = require('moment');
-          timestamp = moment().subtract(
-            selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
+          timestamp = getTimestampFromDefaultTimeRange(selected_config);
           rangeType = 'gte';
-        }
+      }
+      var fieldStatsTimestamp = timestamp;
+      if (rangeType === 'lte') { //scroll up
+        fieldStatsTimestamp = getTimestampFromDefaultTimeRange(selected_config);
       }
 
-      var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, selected_config.fields.mapping.timestamp, timestamp, request, server);
+      var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, 
+        selected_config.fields.mapping.timestamp, fieldStatsTimestamp, request, server);
       if (!indicesToSearch || indicesToSearch.length === 0) {
         reply({
           ok: false,
-          message: "Empty indices to search."
+          message: "Empty indices to search for timestamp :" + timestamp
         });
+        return;
       }
 
       //Search Request bbody
@@ -207,7 +218,7 @@ module.exports = function (server) {
           resp: convertToClientFormat(selected_config, resp)
         });
       }).catch(function (resp) {
-        console.error("Error while executing search",resp);
+        server.log(['logtrail','error'],"Error while executing search",resp);
         if (resp.isBoom) {
           reply(resp);
         } else {
@@ -267,10 +278,10 @@ module.exports = function (server) {
           resp: resp.aggregations.hosts.buckets
         });
       }).catch(function (resp) {
+        server.log(['logtrail','error'],"Error while fetching hosts" + resp);
         if(resp.isBoom) {
           reply(resp);
         } else {
-          console.error("Error while fetching hosts",resp);
           reply({
             ok: false,
             resp: resp

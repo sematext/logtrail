@@ -47,6 +47,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   var searchText = null;
   var lastEventTime = null;
   var config,selected_index_config = null;
+  var scrollInProgress = false;
   //Backup for event, with only event Ids as keys
   var eventIds = new Set();
 
@@ -134,13 +135,15 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       config: selected_index_config
     };
 
-    console.debug("sending search request with params " + JSON.stringify(request));
+    console.log("sending search request with params " + JSON.stringify(request));
     return $http.post(chrome.addBasePath('/logtrail/search'), request).then(function (resp) {
       if (resp.data.ok) {
         updateEventView(resp.data.resp,actions,order);
       } else {
         console.error('Error while fetching events ' , resp);
+        if (esp.data.resp) { // Error from ES
         $scope.errorMessage = 'Exception while executing search query :' + resp.data.resp.msg;
+      }
       }
     });
   };
@@ -241,6 +244,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
         $scope.firstEventReached = true;
       }
     }
+    trimEvents(actions.indexOf('append') != -1);
 
     if (actions.indexOf('scrollToTop') !== -1) {
       $timeout(function () {
@@ -261,26 +265,24 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     } else {
       //Bring scroll to bottom
       $timeout(function () {
-        window.scrollTo(0,$(document).height());
+        scrollInProgress = true;
+        window.scrollTo(0,$document.height());
       });
     }
-
-    trimEvents(actions.indexOf('append') != -1);
 
     if ($scope.events.length > 0) {
       lastEventTime = Date.create($scope.events[$scope.events.length - 1].timestamp).getTime();
     } else {
       lastEventTime = null;
     }
-
-    $timeout(function () {
-      updateViewInProgress = false;
-    });
-
     if ($scope.events != null && $scope.events.length === 0) {
       $scope.showNoEventsMessage = true;
     }
     updateSearchStartTime();
+    console.log("Event count in view " + $scope.events.length + " eventIds " + eventIds.size);
+    $timeout(function () {
+      updateViewInProgress = false;
+    });
   };
 
   function updateSearchStartTime() {
@@ -446,7 +448,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
 
   angular.element($window).bind('scroll', function (event) {
 
-    if (!updateViewInProgress) {
+    if (!scrollInProgress) {
       //When scroll bar reaches bottom
       var scrollTop = angular.element($window).scrollTop();
       var scrollPos = angular.element($window).scrollTop() + angular.element($window).height();
@@ -460,7 +462,6 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
         //When scroll bar is in middle
         $scope.$apply(updateLiveTailStatus('Go Live'));
       }
-
       //When scrollbar reaches top & if scroll bar is visible
       if (window.pageYOffset === 0) {
         // && angular.element($document).height() > angular.element($window).height()) {
@@ -469,6 +470,8 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
           doSearch('lte', 'desc', ['prepend','scrollToView'], timestamp);
         }
       }
+    } else {
+      scrollInProgress = false;
     }
   });
 
@@ -478,7 +481,6 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
 
   function doTail() {
     if ($scope.liveTailStatus === 'Live' && !updateViewInProgress) {
-
       var adjustedLastEventTime = null;
       if (lastEventTime) {
         adjustedLastEventTime = lastEventTime - ( selected_index_config.es_index_time_offset_in_seconds * 1000 );
@@ -531,7 +533,11 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     $scope.hosts = null;
     $scope.errorMessage = null;
     $scope.hostSearchText = null;
+    $scope.userSearchText = null;
     selected_index_config = null;
+    updateViewInProgress = false;
+    $location.path('/').search({});
+    
   }
 
   function onSettingsChange() {
@@ -551,18 +557,6 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   };
 
   init();
-});
-
-
-//Directive to manage scroll during launch and on new events
-uiModules.get('app/logtrail').directive('onLastRepeat', function () {
-  return function (scope, element, attrs) {
-    if (scope.$last) {
-      setTimeout(function () {
-        scope.$emit('onRepeatLast', element, attrs);
-      }, 1);
-    }
-  };
 });
 
 uiModules.get('app/logtrail').directive('clickOutside', function ($document) {

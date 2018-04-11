@@ -12,7 +12,7 @@
       "max_buckets": 500,
       "default_time_range_in_days" : 30,
       "max_hosts": 500,
-      "max_events_to_keep_in_viewer": 5000,
+      "max_events_to_keep_in_viewer": 3000,
       "fields" : null,
       "color_mapping" : null
     }  
