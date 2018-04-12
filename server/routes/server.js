@@ -133,9 +133,11 @@ module.exports = function (server) {
       var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, 
         selected_config.fields.mapping.timestamp, fieldStatsTimestamp, request, server);
       if (!indicesToSearch || indicesToSearch.length === 0) {
+        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp);
+        //return empty array
         reply({
-          ok: false,
-          message: "Empty indices to search for timestamp :" + timestamp
+          ok: true,
+          resp: []
         });
         return;
       }
@@ -218,7 +220,7 @@ module.exports = function (server) {
           resp: convertToClientFormat(selected_config, resp)
         });
       }).catch(function (resp) {
-        server.log(['logtrail','error'],"Error while executing search",resp);
+        server.log(['logtrail','error'],"Error while executing search" + resp);
         if (resp.isBoom) {
           reply(resp);
         } else {
