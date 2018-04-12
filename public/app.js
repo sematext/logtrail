@@ -142,8 +142,8 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       } else {
         console.error('Error while fetching events ' , resp);
         if (esp.data.resp) { // Error from ES
-        $scope.errorMessage = 'Exception while executing search query :' + resp.data.resp.msg;
-      }
+          $scope.errorMessage = 'Exception while executing search query :' + resp.data.resp.msg;
+        }
       }
     });
   };
@@ -191,6 +191,16 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   */
 
   function updateEventView(events,actions,order) {
+
+    //probably we are getting too many events as part of tail
+    //or user paused for long time.
+    console.info("Fetched event count : " + events.length);
+    if (actions.indexOf('append') !== -1 && 
+    events.length >= selected_index_config.max_buckets) {
+      console.info("Too many events from tail. So fetch newly and overwrite view.");
+      doSearch(null, 'desc', ['overwrite','reverse'], null);
+      return;
+    }
 
     updateViewInProgress = true;
     $scope.showNoEventsMessage = false;
