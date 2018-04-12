@@ -131,7 +131,8 @@ html,body {
 	position: absolute;
 	background: white;
 	border: 4px solid rgb(128,128,128);
-	width: 16em;
+	max-width: 25em;
+	min-width: 20em;
 	height: auto;
 	border-radius: 6px;
 	bottom: 5.5em;
