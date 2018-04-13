@@ -40,6 +40,10 @@ html,body {
 	margin-left: 1em;
 	font-weight: bold;
 	color: black;
+	max-width: 20em;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
 }
 
 .time-option-select-btn {
@@ -61,7 +65,7 @@ html,body {
     margin-left: 1em;
     border: 2px solid #ccc;
     font-size: 16px;
-    width: 60em;
+    width: 50em;
 }
 
 .search-box.form-control.hint {
@@ -128,15 +132,14 @@ html,body {
 }
 
 .host-picker {
-	position: absolute;
+	position: fixed;
 	background: white;
 	border: 4px solid rgb(128,128,128);
-	max-width: 25em;
+	max-width: 30em;
 	min-width: 20em;
 	height: auto;
 	border-radius: 6px;
 	bottom: 5.5em;
-	left: 71em;
 	padding: 0;
 }
 
@@ -196,7 +199,7 @@ html,body {
 
 
 .date-picker {
-	position: absolute;
+	position: fixed;
 	background: white;
 	border: 4px solid rgb(128,128,128);
 	padding: 1em;
@@ -204,7 +207,6 @@ html,body {
 	height: 7em;
 	border-radius: 6px;
 	bottom: 5.5em;
-	left: 72em;
 }
 
 .date-picker:after, .date-picker:before {

@@ -275,7 +275,6 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     } else {
       //Bring scroll to bottom
       $timeout(function () {
-        scrollInProgress = true;
         window.scrollTo(0,$document.height());
       });
     }
@@ -296,15 +295,18 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   };
 
   function updateSearchStartTime() {
+    var timestamp = 0;
     if ($scope.pickedDateTime != null) {
-      var timestamp = Date.create($scope.pickedDateTime).getTime();
+      timestamp = Date.create($scope.pickedDateTime).getTime();
       $scope.searchRangeStartTime = moment(timestamp).format('MMMM Do YYYY, h:mm:ss a');
     } else {
-      if (selected_index_config.default_time_range_in_days !== 0) {
-        $scope.searchRangeStartTime = moment().subtract(
-          selected_index_config.default_time_range_in_days,'days').startOf('day').format('MMMM Do YYYY, h:mm:ss a');
+      if (searchText === null || searchText.length === 0) {
+        timestamp = moment().subtract(selected_index_config.launch_time_range_in_mins,'minutes').valueOf();
+      } else {
+        timestamp = moment().subtract(selected_index_config.default_time_range_in_days,'days').startOf('day').valueOf();
       }
     }
+    $scope.searchRangeStartTime = moment(timestamp).format('MMMM Do YYYY, h:mm:ss a');
   }
 
   function trimEvents(append) {
@@ -457,17 +459,20 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   });
 
   angular.element($window).bind('scroll', function (event) {
-
-    if (!scrollInProgress) {
+    var scrollTop = angular.element($window).scrollTop();
+    var scrollPos = angular.element($window).scrollTop() + angular.element($window).height();
+    var docHeight = angular.element($document).height();
+    if (!updateViewInProgress) {
       //When scroll bar reaches bottom
-      var scrollTop = angular.element($window).scrollTop();
-      var scrollPos = angular.element($window).scrollTop() + angular.element($window).height();
-      var docHeight = angular.element($document).height();
       if (scrollPos >= docHeight) {
-        if ($scope.events.length > 0) {
-          doSearch('gte', 'asc', ['append','scrollToView'], lastEventTime - ( selected_index_config.es_index_time_offset_in_seconds * 1000 ));
+        if (!scrollInProgress) {
+          if ($scope.events.length > 0) {
+            doSearch('gte', 'asc', ['append','scrollToView'], lastEventTime - ( selected_index_config.es_index_time_offset_in_seconds * 1000 ));
+          }
+          $scope.$apply(updateLiveTailStatus('Live'));
+        } else {
+          scrollInProgress = false;
         }
-        $scope.$apply(updateLiveTailStatus('Live'));
       } else {
         //When scroll bar is in middle
         $scope.$apply(updateLiveTailStatus('Go Live'));
@@ -480,8 +485,6 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
           doSearch('lte', 'desc', ['prepend','scrollToView'], timestamp);
         }
       }
-    } else {
-      scrollInProgress = false;
     }
   });
 
@@ -583,6 +586,10 @@ uiModules.get('app/logtrail').directive('clickOutside', function ($document) {
             if (e.target.id === 'date-picker-btn' ||
                 e.target.id === 'host-picker-btn') {
               scope.popup = angular.element('#' + e.target.id.replace('-btn','')).removeClass('ng-hide');
+              var buttonCenter = e.target.getBoundingClientRect().x + (e.target.getBoundingClientRect().width/2);
+              var popupWidth = scope.popup.width();
+              scope.popup.css("left",buttonCenter - (popupWidth/2));
+              scope.popup.css("min-width",popupWidth);
             }
         }
       });

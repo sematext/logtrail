@@ -31,8 +31,8 @@
             target="_blank"><span class="glyphicon glyphicon-question-sign"></span></a>
         </div>
         <button class="submit btn search-btn flex-item-search">Search</button>
-        <button type="button" id="host-picker-btn" class="btn host-option-select-btn flex-item-search" ng-click="showHostPicker()">{{selectedHost == null ? 'All Systems' : selectedHost}}</button>
-        <button type="button" id="date-picker-btn" class="time-option-select-btn btn flex-item-search" ng-click="showDatePicker()">{{ isNullorEmpty(userDateTimeSeeked) ? 'Now' : userDateTimeSeeked }}</button>
+        <button type="button" id="host-picker-btn" class="btn host-option-select-btn flex-item-search">{{selectedHost == null ? 'All Systems' : selectedHost}}</button>
+        <button type="button" id="date-picker-btn" class="time-option-select-btn btn flex-item-search">{{ isNullorEmpty(userDateTimeSeeked) ? 'Now' : userDateTimeSeeked }}</button>
         <button type="button" id="settings-btn" class="settings-select-btn btn flex-item-search" ng-click="showSettings(false)">Settings</button>
       </div>
     </form>

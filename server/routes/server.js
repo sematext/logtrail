@@ -94,12 +94,16 @@ function convertToClientFormat(selected_config, esResponse) {
   return clientResponse;
 }
 
-function getTimestampFromDefaultTimeRange(selected_config) {
+function getTimestampFromDefaultTimeRange(selected_config, searchText) {
   var timestamp = 0;
-  if (selected_config.default_time_range_in_days !== 0) {
-    var moment = require('moment');
-    timestamp = moment().subtract(
-      selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
+  var moment = require('moment');
+  if (searchText === '*') {
+    timestamp = moment().subtract(selected_config.launch_time_range_in_mins,'minutes').valueOf();
+  } else {
+    if (selected_config.default_time_range_in_days !== 0) {
+      timestamp = moment().subtract(
+        selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
+    }
   }
   return timestamp;
 }
@@ -117,23 +121,23 @@ module.exports = function (server) {
       if (searchText == null || searchText.length === 0) {
           searchText = '*';
       }
-
       //If no time range is present get events based on default selected_config
       var timestamp = request.payload.timestamp;
       var rangeType = request.payload.rangeType;
       if (timestamp == null) {
-          timestamp = getTimestampFromDefaultTimeRange(selected_config);
+          timestamp = getTimestampFromDefaultTimeRange(selected_config,searchText);
           rangeType = 'gte';
       }
       var fieldStatsTimestamp = timestamp;
       if (rangeType === 'lte') { //scroll up
-        fieldStatsTimestamp = getTimestampFromDefaultTimeRange(selected_config);
+        fieldStatsTimestamp = getTimestampFromDefaultTimeRange(selected_config,searchText);
       }
 
       var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, 
         selected_config.fields.mapping.timestamp, fieldStatsTimestamp, request, server);
+      
       if (!indicesToSearch || indicesToSearch.length === 0) {
-        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp);
+        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selected_config.es.default_index);
         //return empty array
         reply({
           ok: true,
