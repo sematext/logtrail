@@ -95,17 +95,8 @@ function convertToClientFormat(selected_config, esResponse) {
 }
 
 function getTimestampFromDefaultTimeRange(selected_config, searchText) {
-  var timestamp = 0;
   var moment = require('moment');
-  if (searchText === '*') {
-    timestamp = moment().subtract(selected_config.launch_time_range_in_mins,'minutes').valueOf();
-  } else {
-    if (selected_config.default_time_range_in_days !== 0) {
-      timestamp = moment().subtract(
-        selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
-    }
-  }
-  return timestamp;
+  return moment().subtract(selected_config.default_time_range_in_mins,'minutes').valueOf();
 }
 
 module.exports = function (server) {
@@ -244,18 +235,18 @@ module.exports = function (server) {
     handler: async function (request,reply) {
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       var index = request.payload.index;
+      var timestamp = request.payload.timestamp;
       var selected_config = request.payload.config;
       var moment = require('moment');
-      var timestamp = moment().subtract(
-            selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
-          
       var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, 
         selected_config.fields.mapping.timestamp, timestamp, request, server);
       if (!indicesToSearch || indicesToSearch.length === 0) {
+        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selected_config.es.default_index);
         reply({
-          ok: false,
-          message: "Empty indices to search."
+          ok: true,
+          resp: []
         });
+        return;
       }
 
       var hostnameField = selected_config.fields.mapping.hostname;

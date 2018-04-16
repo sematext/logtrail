@@ -195,7 +195,8 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     //probably we are getting too many events as part of tail
     //or user paused for long time.
     console.info("Fetched event count : " + events.length);
-    if (actions.indexOf('append') !== -1 && 
+    var isTail = actions.length ==1 && actions.indexOf('append') !== -1;
+    if (isTail && 
     events.length >= selected_index_config.max_buckets) {
       console.info("Too many events from tail. So fetch newly and overwrite view.");
       doSearch(null, 'desc', ['overwrite','reverse'], null);
@@ -275,6 +276,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     } else {
       //Bring scroll to bottom
       $timeout(function () {
+        scrollInProgress = true;
         window.scrollTo(0,$document.height());
       });
     }
@@ -294,18 +296,18 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     });
   };
 
-  function updateSearchStartTime() {
+  function getSearchStartTime() {
     var timestamp = 0;
     if ($scope.pickedDateTime != null) {
       timestamp = Date.create($scope.pickedDateTime).getTime();
-      $scope.searchRangeStartTime = moment(timestamp).format('MMMM Do YYYY, h:mm:ss a');
     } else {
-      if (searchText === null || searchText.length === 0) {
-        timestamp = moment().subtract(selected_index_config.launch_time_range_in_mins,'minutes').valueOf();
-      } else {
-        timestamp = moment().subtract(selected_index_config.default_time_range_in_days,'days').startOf('day').valueOf();
-      }
+      timestamp = moment().subtract(selected_index_config.default_time_range_in_mins,'minutes').valueOf();
     }
+    return timestamp;
+  }
+
+  function updateSearchStartTime() {
+    var timestamp = getSearchStartTime();
     $scope.searchRangeStartTime = moment(timestamp).format('MMMM Do YYYY, h:mm:ss a');
   }
 
@@ -329,7 +331,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   }
 
   $scope.isTimeRangeSearch = function () {
-    return (selected_index_config != null && selected_index_config.default_time_range_in_days !== 0) || $scope.pickedDateTime != null;
+    return (selected_index_config != null && selected_index_config.default_time_range_in_mins !== 0) || $scope.pickedDateTime != null;
   };
 
   $scope.onSearchClick = function () {
@@ -389,6 +391,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       $scope.userDateTimeSeeked = null;
     }
     angular.element('#date-picker').addClass('ng-hide');
+    setupHostsList();
     $scope.onSearchClick();
   };
 
@@ -469,7 +472,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
           if ($scope.events.length > 0) {
             doSearch('gte', 'asc', ['append','scrollToView'], lastEventTime - ( selected_index_config.es_index_time_offset_in_seconds * 1000 ));
           }
-          $scope.$apply(updateLiveTailStatus('Live'));
+          //$scope.$apply(updateLiveTailStatus('Live'));
         } else {
           scrollInProgress = false;
         }
@@ -521,8 +524,10 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   };
 
   function setupHostsList() {
+    var timestamp = getSearchStartTime();
     var params = {
-      config: selected_index_config
+      config: selected_index_config,
+      timestamp: timestamp
     };
     $http.post(chrome.addBasePath('/logtrail/hosts'),params).then(function (resp) {
       if (resp.data.ok) {

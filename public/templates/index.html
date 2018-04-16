@@ -84,10 +84,6 @@
           </label>
           <input id="messageFormat" type="text" ng-model="settings.messageFormat" class="form-control" required>
         </div>
-        <div class="form-group col-md-12">
-          <label for="message">Default time range to search (days)</label>
-          <input type="number" min="1" max="30" ng-model="settings.timeRange" class="form-control" required>
-        </div>
         <button ng-hide="settings.settingsNotFound" ng-click="hideSettings()" class="btn btn-warning">Cancel</button>
         <button type="submit" ng-disabled="!settingsFrom.$valid" ng-click="saveSettings()" class="btn btn-primary">Save</button>
       </form>

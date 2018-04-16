@@ -5,8 +5,7 @@ const app = uiModules.get('app/logtrail', []);
 
 app.controller('SettingsController', function($scope, $http) {
   $scope.settings = {
-    messageFormat: "{{{ message }}}",
-    timeRange: 10
+    messageFormat: "{{{ message }}}"
   };
 
   $scope.$on("show-settings", function(event, data) {
@@ -62,7 +61,6 @@ app.controller('SettingsController', function($scope, $http) {
           }
           $scope.settings.program = selected_index_config.fields.mapping.program;
           $scope.settings.messageFormat = selected_index_config.fields.message_format;
-          $scope.settings.timeRange = selected_index_config.default_time_range_in_days;
          } else {
           if (args.settingsNotFound) {
             //pre-populate dialog if host and source fields are present
