@@ -27,6 +27,7 @@ module.exports = function (server) {
       
       var updateRequest = {
         index: request.state.kibana5_token + "_kibana",
+        auth: request.state.stAuth,
         type: 'logtrail',
         id: 'config',
         body: {
@@ -78,7 +79,8 @@ module.exports = function (server) {
       if (indicesToSearch.length > 0) {
         var latestIndex = indicesToSearch[0];
         var mappingRequest = {
-          index: latestIndex
+          index: latestIndex,
+          auth: request.state.stAuth
         }
         const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
         callWithInternalUser('indices.getMapping',mappingRequest).then(function (resp) {
