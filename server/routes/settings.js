@@ -154,7 +154,8 @@ module.exports = function (server) {
       var getRequest = {
         index: index + '_kibana',
         type: 'logtrail',
-        id: 'config'
+        id: 'config',
+        auth: request.state.stAuth
       };
       const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
       callWithInternalUser('get',getRequest).then(function (resp) {
