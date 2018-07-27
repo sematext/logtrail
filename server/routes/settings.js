@@ -27,7 +27,6 @@ module.exports = function (server) {
       
       var updateRequest = {
         index: request.state.kibana5_token + "_kibana",
-        auth: request.state.stAuth,
         type: 'logtrail',
         id: 'config',
         body: {
@@ -45,8 +44,8 @@ module.exports = function (server) {
       if (raw) {
         updateRequest.body.field_mapping['hostname_keyword'] = host;
       }
-      const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
-      callWithInternalUser('index',updateRequest).then(function (resp) {
+      const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
+      callWithRequest(request, 'index',updateRequest).then(function (resp) {
         reply({
           ok: true
         });
@@ -79,11 +78,10 @@ module.exports = function (server) {
       if (indicesToSearch.length > 0) {
         var latestIndex = indicesToSearch[0];
         var mappingRequest = {
-          index: latestIndex,
-          auth: request.state.stAuth
+          index: latestIndex
         }
-        const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
-        callWithInternalUser('indices.getMapping',mappingRequest).then(function (resp) {
+        const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
+        callWithRequest(request, 'indices.getMapping',mappingRequest).then(function (resp) {
           for (var index in resp) {
             var properties = resp[index].mappings["logsene_type"].properties;
             //Known mappings
@@ -154,11 +152,10 @@ module.exports = function (server) {
       var getRequest = {
         index: index + '_kibana',
         type: 'logtrail',
-        id: 'config',
-        auth: request.state.stAuth
+        id: 'config'
       };
-      const { callWithInternalUser } = server.plugins.elasticsearch.getCluster('admin');
-      callWithInternalUser('get',getRequest).then(function (resp) {
+      const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
+      callWithRequest(request, 'get',getRequest).then(function (resp) {
         if (resp.found) {
           var configFromES = resp._source;
           var config = require('../../logtrail.json');
