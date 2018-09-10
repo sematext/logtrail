@@ -3,7 +3,7 @@ var utils = require('./utils.js');
 // Save settings
 module.exports = function (server) {
   server.route({
-    method: "POST",
+    method: 'POST',
     path: '/logtrail/settings',
     handler: function (request, reply) {
       var settings = request.payload;
@@ -13,23 +13,23 @@ module.exports = function (server) {
         settings.host = host.substring(0, host.indexOf('.raw'));
         raw = true;
       }
-      //verify template 
+      //verify template
       var handlebar = require('handlebars');
       try {
         handlebar.precompile(settings.messageFormat);
       } catch(e) {
         reply({
           ok: false,
-          message: "Invalid message format - " + e.message
+          message: 'Invalid message format - ' + e.message
         });
         return;
       }
-      
       var updateRequest = {
-        index: request.state.kibana5_token + "_kibana",
-        type: 'logtrail',
-        id: 'config',
+        index: request.state.kibana5_token + '_kibana',
+        type: 'doc',
+        id: 'config:logtrail',
         body: {
+          logtrail: {
             field_mapping: {
               mapping: {
                 timestamp: '@timestamp',
@@ -38,11 +38,13 @@ module.exports = function (server) {
                 message: 'message',
               },
               message_format: settings.messageFormat
-          }
+            }
+          },
+          type: 'logtrail',
         }
-      }
+      };
       if (raw) {
-        updateRequest.body.field_mapping['hostname_keyword'] = host;
+        updateRequest.body.logtrail.field_mapping.hostname_keyword = host;
       }
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       callWithRequest(request, 'index',updateRequest).then(function (resp) {
@@ -59,33 +61,33 @@ module.exports = function (server) {
   });
 
   server.route({
-    method: "GET",
+    method: 'GET',
     path: '/logtrail/settings',
     handler: async function (request, reply) {
       var index = null;
       if (request.state.kibana5_token) {
         index = request.state.kibana5_token;
       } else {
-        console.error("Cannot find App Token in request.")
+        console.error('Cannot find App Token in request.');
         reply({
           ok: false,
-          message: "Cannot find App Token in the request"
+          message: 'Cannot find App Token in the request'
         });
         return;
       }
 
-      var indicesToSearch = await utils.getIndicesToSearch(index, "@timestamp", null, request, server);
+      var indicesToSearch = await utils.getIndicesToSearch(index, '@timestamp', null, request, server);
       if (indicesToSearch.length > 0) {
         var latestIndex = indicesToSearch[0];
         var mappingRequest = {
           index: latestIndex
-        }
+        };
         const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
         callWithRequest(request, 'indices.getMapping',mappingRequest).then(function (resp) {
           for (var index in resp) {
-            var properties = resp[index].mappings["logsene_type"].properties;
+            var properties = resp[index].mappings['logsene_type'].properties;
             //Known mappings
-            var ignoreFields = ["@timestamp","@timestamp_received","message","logsene_original_type"];
+            var ignoreFields = ['@timestamp','@timestamp_received','message','logsene_original_type'];
             var fields = [];
             getFieldMappings (properties, fields, ignoreFields, null);
             reply({
@@ -95,10 +97,10 @@ module.exports = function (server) {
             return;
           }
         }).catch(function (resp) {
-          console.error("Error while fetching fields ", resp)
+          console.error('Error while fetching fields ', resp);
           reply({
             ok: false,
-            message: "Cannot fetch settings info"
+            message: 'Cannot fetch settings info'
           });
           return;
         });
@@ -110,22 +112,21 @@ module.exports = function (server) {
     for (var p in properties) {
       var name = p;
       if (parentField) {
-        name = parentField + "." + p;
+        name = parentField + '.' + p;
       }
       if (ignoreFields.indexOf(p) === -1) {
         //nested
         if (properties[p].properties) {
           getFieldMappings(properties[p].properties, fieldsArray, ignoreFields,name);
         } else {
-          
           var field = {
             name: name,
             type: properties[p].type
-          }
+          };
 
           if (properties[p].fields) {
             if (properties[p].fields.raw) {
-              field.rawType = properties[p].fields.raw.type
+              field.rawType = properties[p].fields.raw.type;
             }
           }
           fieldsArray.push(field);
@@ -142,22 +143,22 @@ module.exports = function (server) {
       if (request.state.kibana5_token) {
         index = request.state.kibana5_token;
       } else {
-        console.error("Cannot find App Token in request.")
+        console.error('Cannot find App Token in request.');
         reply({
           ok: false,
-          message: "Cannot find App Token in the request"
+          message: 'Cannot find App Token in the request'
         });
         return;
       }
       var getRequest = {
         index: index + '_kibana',
-        type: 'logtrail',
-        id: 'config'
+        type: 'doc',
+        id: 'config:logtrail'
       };
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       callWithRequest(request, 'get',getRequest).then(function (resp) {
         if (resp.found) {
-          var configFromES = resp._source;
+          var configFromES = resp._source.logtrail;
           var config = require('../../logtrail.json');
           var indexConfig = config.index_patterns[0];
           indexConfig.es.default_index = index;
@@ -171,16 +172,16 @@ module.exports = function (server) {
           reply({
             ok: false,
             notFound: true,
-            message: "Cannot find logtrail configuration"
+            message: 'Cannot find logtrail configuration'
           });
         }
       }).catch(function (resp) {
-        console.error("Error while fetching config ", resp)
+        console.error('Error while fetching config ', resp);
         reply({
           ok: false,
-          message: "Cannot fetch logtrail configuration."
+          message: 'Cannot fetch logtrail configuration.'
         });
       });
     }
   });
-}
+};

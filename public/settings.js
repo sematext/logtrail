@@ -1,4 +1,4 @@
-import uiModules from "ui/modules";
+import { uiModules } from 'ui/modules';
 import chrome from 'ui/chrome';
 
 const app = uiModules.get('app/logtrail', []);

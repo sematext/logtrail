@@ -4,7 +4,7 @@ function getMessageTemplate(handlebar, selected_config) {
   var message_format = selected_config.fields.message_format;
   //Append <a> tags for click to message format except for message field
     var message_format_regex = /({{{(\S+)}}})/g; // e.g. {{pid}} : {{syslog_message}}
-    var ng_click_template = handlebar.compile("<a class=\"ng-binding\" ng-click=\"onClick('{{name_no_braces}}','{{name}}')\">{{name}}</a>",
+    var ng_click_template = handlebar.compile('<a class=\'ng-binding\' ng-click=\'onClick(\'{{name_no_braces}}\',\'{{name}}\')\'>{{name}}</a>',
       {
       knownHelpers: {
         log: false,
@@ -12,7 +12,7 @@ function getMessageTemplate(handlebar, selected_config) {
       },
       knownHelpersOnly: true
     });
-    var messageField = "{{{" + selected_config.fields.mapping.message + "}}}";
+    var messageField = '{{{' + selected_config.fields.mapping.message + '}}}';
     var message_template = message_format;
 
     var match = message_format_regex.exec(message_format);
@@ -27,7 +27,7 @@ function getMessageTemplate(handlebar, selected_config) {
       }
       match = message_format_regex.exec(message_format);
     }
-    return message_template; //<a class="ng-binding" ng-click="onClick('pid','{{pid}}')">{{pid}}</a> : {{syslog_message}}
+    return message_template; //<a class='ng-binding' ng-click='onClick('pid','{{pid}}')'>{{pid}}</a> : {{syslog_message}}
 }
 
 function convertToClientFormat(selected_config, esResponse) {
@@ -78,10 +78,10 @@ function convertToClientFormat(selected_config, esResponse) {
     message = escape(message);
     //if highlight is present then replace pre and post tag with html
     if (hits[i].highlight) {
-      message = message.replace(/logtrail.highlight.pre_tag/g,'<span class="highlight">')
-      message = message.replace(/logtrail.highlight.post_tag/g,'</span>')
+      message = message.replace(/logtrail.highlight.pre_tag/g,'<span class=\'highlight\'>');
+      message = message.replace(/logtrail.highlight.post_tag/g,'</span>');
     }
-    source[selected_config.fields.mapping['message']] = message;
+    source[selected_config.fields.mapping.message] = message;
 
     //If the user has specified a custom format for message field
     if (message_format) {
@@ -128,7 +128,7 @@ module.exports = function (server) {
         selected_config.fields.mapping.timestamp, fieldStatsTimestamp, request, server);
       
       if (!indicesToSearch || indicesToSearch.length === 0) {
-        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selected_config.es.default_index);
+        server.log(['logtrail','info'],'Empty indices to search for timestamp '+ timestamp + ' with index ' + selected_config.es.default_index);
         //return empty array
         reply({
           ok: true,
@@ -139,7 +139,7 @@ module.exports = function (server) {
 
       //Search Request bbody
       var searchRequest = {
-        index: indicesToSearch.join(","),
+        index: indicesToSearch.join(','),
         size: selected_config.max_buckets,
         body : {
           sort : [{}],
@@ -165,10 +165,10 @@ module.exports = function (server) {
         }
       };
 
-      if (searchText !== "*") {
+      if (searchText !== '*') {
         searchRequest.body['highlight'] = {
-          pre_tags : ["logtrail.highlight.pre_tag"],
-          post_tags : ["logtrail.highlight.post_tag"],
+          pre_tags : ['logtrail.highlight.pre_tag'],
+          post_tags : ['logtrail.highlight.post_tag'],
           fields : {
           }
         };
@@ -215,7 +215,7 @@ module.exports = function (server) {
           resp: convertToClientFormat(selected_config, resp)
         });
       }).catch(function (resp) {
-        server.log(['logtrail','error'],"Error while executing search" + resp);
+        server.log(['logtrail','error'],'Error while executing search' + resp);
         if (resp.isBoom) {
           reply(resp);
         } else {
@@ -241,7 +241,7 @@ module.exports = function (server) {
       var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, 
         selected_config.fields.mapping.timestamp, timestamp, request, server);
       if (!indicesToSearch || indicesToSearch.length === 0) {
-        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selected_config.es.default_index);
+        server.log(['logtrail','info'],'Empty indices to search for timestamp '+ timestamp + ' with index ' + selected_config.es.default_index);
         reply({
           ok: true,
           resp: []
@@ -254,7 +254,7 @@ module.exports = function (server) {
         hostnameField += '.raw';
       }
       var hostAggRequest = {
-        index: indicesToSearch.join(","),
+        index: indicesToSearch.join(','),
         body : {
           size: 0,
           aggs: {
@@ -275,7 +275,7 @@ module.exports = function (server) {
           resp: resp.aggregations.hosts.buckets
         });
       }).catch(function (resp) {
-        server.log(['logtrail','error'],"Error while fetching hosts" + resp);
+        server.log(['logtrail','error'],'Error while fetching hosts' + resp);
         if(resp.isBoom) {
           reply(resp);
         } else {
