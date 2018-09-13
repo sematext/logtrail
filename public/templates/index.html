@@ -16,7 +16,8 @@
       <time>{{ event.display_timestamp }}</time>
       <span class='host'><a href ng-click="onHostSelected(event.hostname)">{{ event.hostname }}</a></span>
       <span class='program'><a ng-click="onProgramClick(event.program)">{{ event.program }}:</a></span>
-      <span class="message" ng-style="event.color? {color: event.color} : ''" ng-bind-html="event.message" compile-template />
+      <span class="message" ng-style="event.color? {color: event.color} : ''" ng-bind-html="event.message | ansiToHtml" compile-template
+      />
     </li>
   </ul>
 
@@ -50,11 +51,17 @@
 
     <div class="host-picker ng-hide" id="host-picker" click-outside>
       <ul class="host-picker-list">
-        <li ng-repeat="host in hosts" ng-hide="hostSearchText != null && !host.includes(hostSearchText)"><a href ng-click="onHostSelected(host)">{{host}}</a></li>       
+        <li ng-repeat="host in hosts" ng-hide="hostSearchText != null && !host.includes(hostSearchText)">
+          <a href ng-click="onHostSelected(host)">{{host}}</a>
+        </li>
       </ul>
       <ul class="host-picker-list">
-        <li> <a href ng-click="onHostSelected('*')"> [ All Systems ] </a></li>
-        <li ng-hide="hosts.length < 11"><input class="host-picker-search" type="search" name="host-search-input" ng-model="hostSearchText"/></li>
+        <li>
+          <a href ng-click="onHostSelected('*')"> [ All Systems ] </a>
+        </li>
+        <li ng-hide="hosts.length < 11">
+          <input class="host-picker-search" type="search" name="host-search-input" ng-model="hostSearchText" />
+        </li>
       </ul>
     </div>
     <div class="pull-right live-tail-button">
@@ -90,4 +97,9 @@
     </div>
   </div>
 
+(??)    <div class="pull-right live-tail-button">
+(??)      <i ng-click="toggleLiveTail()" class="fa fa-3x" ng-class="getLiveTailIcon()"></i>
+(??)    </div>
+(??)    </div>
+(??)</div>
 </div>
