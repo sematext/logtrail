@@ -1,7 +1,7 @@
 var utils = require('./utils.js');
 
-function getMessageTemplate(handlebar, selected_config) {
-  var message_format = selected_config.fields.message_format;
+function getMessageTemplate(handlebar, selectedConfig) {
+  var messageFormat = selectedConfig.fields.message_format;
   //Append <a> tags for click to message format except for message field
   var messageFormatRegex = /({{{[\[]?(\S+?)[\]]?}}})/g; // e.g. {{{[pid]}}} {{{program-name}}} : {{syslog_message}}
   var ngClickTemplate = handlebar.compile('<a class="ng-binding" ng-click="onClick(\'{{name_no_braces}}\',\'{{name}}\')">{{name}}</a>',
@@ -113,7 +113,7 @@ module.exports = function (server) {
   server.route({
     method: ['POST'],
     path: '/logtrail/search',
-    handler: function (request, reply) {
+    handler: async function (request, reply) {
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       var selectedConfig = request.payload.config;
       var searchText = request.payload.searchText;
@@ -125,26 +125,26 @@ module.exports = function (server) {
       var timestamp = request.payload.timestamp;
       var rangeType = request.payload.rangeType;
       if (timestamp == null) {
-          timestamp = getTimestampFromDefaultTimeRange(selected_config,searchText);
+          timestamp = getDefaultTimeRangeToSearch(selectedConfig,searchText);
           rangeType = 'gte';
       }
       var fieldStatsTimestamp = timestamp;
       if (rangeType === 'lte') { //scroll up
-        fieldStatsTimestamp = getTimestampFromDefaultTimeRange(selected_config,searchText);
+        fieldStatsTimestamp = getDefaultTimeRangeToSearch(selectedConfig,searchText);
       }
 
-      var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, 
-        selected_config.fields.mapping.timestamp, fieldStatsTimestamp, request, server);
+      /*var indicesToSearch = await utils.getIndicesToSearch(selectedConfig.es.default_index, 
+        selectedConfig.fields.mapping.timestamp, fieldStatsTimestamp, request, server);
       
       if (!indicesToSearch || indicesToSearch.length === 0) {
-        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selected_config.es.default_index);
+        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selectedConfig.es.default_index);
         //return empty array
         reply({
           ok: true,
           resp: []
         });
         return;
-      }
+      }*/
 
       //Search Request body
       var searchRequest = {
@@ -157,7 +157,7 @@ module.exports = function (server) {
                 must :{
                     query_string : {
                       analyze_wildcard: true,
-                      default_field : selected_config.fields.mapping['message'],
+                      default_field : selectedConfig.fields.mapping['message'],
                       query : searchText,
                       default_operator: 'AND'
                     }
@@ -171,13 +171,6 @@ module.exports = function (server) {
                 }
               }
             }
-          },
-          highlight : {
-            pre_tags : ['logtrail.highlight.pre_tag'],
-            post_tags : ['logtrail.highlight.post_tag'],
-            fields : {
-            }
-          }
         }
       };
 
@@ -189,7 +182,7 @@ module.exports = function (server) {
           }
         };
         //Enable highlightng on message field
-        searchRequest.body.highlight.fields[selected_config.fields.mapping['message']] = {
+        searchRequest.body.highlight.fields[selectedConfig.fields.mapping['message']] = {
           number_of_fragments: 0
         };
       }
@@ -203,26 +196,13 @@ module.exports = function (server) {
           term : {
           }
         };
-        var hostnameField = selected_config.fields.mapping.hostname;
-        if (selected_config.fields['hostname_keyword']) {
+        var hostnameField = selectedConfig.fields.mapping.hostname;
+        if (selectedConfig.fields['hostname_keyword']) {
           hostnameField += '.raw';
         }
         termQuery.term[hostnameField] = request.payload.hostname;
         searchRequest.body.query.bool.filter.bool.must.push(termQuery);
       }
-
-(??)      //If no time range is present get events based on default selected_config
-(??)      var timestamp = request.payload.timestamp;
-(??)      var rangeType = request.payload.rangeType;
-(??)      if (timestamp == null) {
-(??)        if (selected_config.default_time_range_in_days !== 0) {
-(??)          var moment = require('moment');
-(??)          timestamp = moment().subtract(
-(??)            selected_config.default_time_range_in_days,'days').startOf('day').valueOf();
-(??)          rangeType = 'gte';
-(??)        }
-(??)      }
-(??)
       //If timestamps are present set ranges
       if (timestamp != null) {
         var rangeQuery = {
@@ -262,37 +242,36 @@ module.exports = function (server) {
   server.route({
     method: ['POST'],
     path: '/logtrail/hosts',
-    handler: function (request,reply) {
+    handler: async function (request,reply) {
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       var selectedConfig = request.payload.config;
       var index = request.payload.index;
       var timestamp = request.payload.timestamp;
-      var selected_config = request.payload.config;
       var moment = require('moment');
-      var indicesToSearch = await utils.getIndicesToSearch(selected_config.es.default_index, 
-        selected_config.fields.mapping.timestamp, timestamp, request, server);
+      /*var indicesToSearch = await utils.getIndicesToSearch(selectedConfig.es.default_index, 
+        selectedConfig.fields.mapping.timestamp, timestamp, request, server);
       if (!indicesToSearch || indicesToSearch.length === 0) {
-        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selected_config.es.default_index);
+        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selectedConfig.es.default_index);
         reply({
           ok: true,
           resp: []
         });
         return;
-      }
+      }*/
 
-      var hostnameField = selected_config.fields.mapping.hostname;
-      if (selected_config.fields['hostname_keyword']) {
+      var hostnameField = selectedConfig.fields.mapping.hostname;
+      if (selectedConfig.fields['hostname_keyword']) {
         hostnameField += '.raw';
       }
       var hostAggRequest = {
-        index: indicesToSearch.join(","),
+        index: selectedConfig.es.default_index,
         body : {
           size: 0,
           aggs: {
             hosts: {
               terms: {
                 field: hostnameField,
-                size: selected_config.max_hosts
+                size: selectedConfig.max_hosts
               }
             }
           }
@@ -319,3 +298,4 @@ module.exports = function (server) {
       });
     }
   });
+};

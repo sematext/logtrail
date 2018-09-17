@@ -10,7 +10,7 @@
       "display_timezone": "local",
       "display_timestamp_format": "MMM DD HH:mm:ss",
       "max_buckets": 500,
-      "default_time_range_in_mins" : 60,
+      "default_time_range_in_minutes" : 60,
       "max_hosts": 500,
       "max_events_to_keep_in_viewer": 1000,
       "fields" : null,

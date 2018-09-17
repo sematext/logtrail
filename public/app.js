@@ -1,9 +1,7 @@
 import angular from 'angular';
 import chrome from 'ui/chrome';
 import uiRoutes from 'ui/routes';
-import { notify } from 'ui/notify';
 import { uiModules } from 'ui/modules';
-import sugarDate from 'sugar-date';
 import moment from 'moment-timezone';
 import AnsiToHtml from 'ansi-to-html';
 
@@ -207,7 +205,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     console.info("Fetched event count : " + events.length);
     var isTail = actions.length ==1 && actions.indexOf('append') !== -1;
     if (isTail && 
-    events.length >= selected_index_config.max_buckets) {
+    events.length >= selectedIndexConfig.max_buckets) {
       console.info("Too many events from tail. So fetch newly and overwrite view.");
       doSearch(null, 'desc', ['overwrite','reverse'], null);
       return;
@@ -313,7 +311,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     if ($scope.pickedDateTime != null) {
       timestamp = Date.create($scope.pickedDateTime).getTime();
     } else {
-      timestamp = moment().subtract(selected_index_config.default_time_range_in_mins,'minutes').valueOf();
+      timestamp = moment().subtract(selectedIndexConfig.default_time_range_in_minutes,'minutes').valueOf();
     }
     return timestamp;
   }
@@ -343,7 +341,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   }
 
   $scope.isTimeRangeSearch = function () {
-    return (selected_index_config != null && selected_index_config.default_time_range_in_mins !== 0) || $scope.pickedDateTime != null;
+    return (selectedIndexConfig != null && selectedIndexConfig.default_time_range_in_minutes !== 0) || $scope.pickedDateTime != null;
   };
 
   $scope.onSearchClick = function () {
@@ -407,30 +405,6 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     $scope.onSearchClick();
   };
 
-  $scope.onSettingsChange = function () {
-    if ($scope.selected_index_pattern !== selectedIndexConfig.es.default_index) {
-      for (var i = config.index_patterns.length - 1; i >= 0; i--) {
-        if (config.index_patterns[i].es.default_index === $scope.selected_index_pattern) {
-          selectedIndexConfig = config.index_patterns[i];
-          break;
-        }
-      }
-    }
-    angular.element('#settings').addClass('ng-hide');
-    //reset index specific states.
-    // Other fields will be overwritten on successful search
-    $scope.events = [];
-    eventIds.clear();
-    $scope.selectedHost = null; //all systems
-    $scope.hosts = null;
-    $scope.errorMessage = null;
-    $scope.hostSearchText = null;
-
-    setupHostsList().then(function() {
-      $scope.onSearchClick();
-    });
-  };
-
   $scope.isNullorEmpty = function (string) {
     return string == null || string === '';
   };
@@ -489,7 +463,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
 
   $scope.showSettings = function (settingsNotFound) {
     var params = {
-      selected_index_config: selected_index_config,
+      selectedIndexConfig: selectedIndexConfig,
       settingsNotFound: settingsNotFound
     }
     $scope.$broadcast("show-settings", params);
@@ -509,7 +483,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
       if (scrollPos >= docHeight) {
         if (!scrollInProgress) {
           if ($scope.events.length > 0) {
-            doSearch('gte', 'asc', ['append','scrollToView'], lastEventTime - ( selected_index_config.es_index_time_offset_in_seconds * 1000 ));
+            doSearch('gte', 'asc', ['append','scrollToView'], lastEventTime - ( selectedIndexConfig.es_index_time_offset_in_seconds * 1000 ));
           }
           //$scope.$apply(updateLiveTailStatus('Live'));
         } else {
@@ -565,7 +539,7 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
   function setupHostsList() {
     var timestamp = getSearchStartTime();
     var params = {
-      config: selected_index_config,
+      config: selectedIndexConfig,
       timestamp: timestamp
     };
     return new Promise((resolve, reject) => {
@@ -596,17 +570,17 @@ app.controller('logtrail', function ($scope, kbnUrl, $route, $routeParams,
     $scope.errorMessage = null;
     $scope.hostSearchText = null;
     $scope.userSearchText = null;
-    selected_index_config = null;
+    selectedIndexConfig = null;
     updateViewInProgress = false;
     $location.path('/').search({});
     
   }
 
   function onSettingsChange() {
-    if ($scope.selected_index_pattern !== selected_index_config.es.default_index) {
+    if ($scope.selected_index_pattern !== selectedIndexConfig.es.default_index) {
       for (var i = config.index_patterns.length - 1; i >= 0; i--) {
         if (config.index_patterns[i].es.default_index === $scope.selected_index_pattern) {
-          selected_index_config = config.index_patterns[i];
+          selectedIndexConfig = config.index_patterns[i];
           break;
         }
       }

@@ -71,35 +71,28 @@
 
   <div class="settings ng-hide" id="settings" ng-controller="SettingsController" escape-settings>
     <div class="settings-content">
-      <div class="title">Settings</div>
-      <form name="settingsFrom" >
+      <div class="kuiLocalDropdownTitle">Settings</div>
+      <form name="settingsForm" >
         <div class="form-group col-md-6">
-          <label for="host">Host</label>
+          <label class="kuiLocalDropdownHeader__label" for="host">Host</label>
           <select class="form-control input-medium" ng-model="settings.host" id="host" required>
             <option ng-repeat="field in settings.hostFields" ng-value="field">{{field}}</option>
           </select>
         </div>
         <div class="form-group col-md-6">
-          <label for="program">Program</label>
+          <label class="kuiLocalDropdownHeader__label" for="program">Program</label>
           <select class="form-control input-medium" ng-model="settings.program" id="program" required>
             <option ng-repeat="field in settings.programFields" ng-value="field">{{field}}</option>
           </select>
         </div>
         <div class="form-group col-md-12">
-          <label for="messageFormat">Message Format
-            <small>Handlebars template to format message.<br> Example: <code ng-non-bindable>{{{className}}} - {{{thread}}} - {{{message}}}</code></small>
-          </label>
+          <label class="kuiLocalDropdownHeader__label" for="messageFormat">Message Format</label>
           <input id="messageFormat" type="text" ng-model="settings.messageFormat" class="form-control" required>
+          <small class='settings-message-hint'>Handlebars template to format message.<br> Example: <code class="settings-message-code" ng-non-bindable>{{{className}}} - {{{thread}}} - {{{message}}}</code></small>
         </div>
-        <button ng-hide="settings.settingsNotFound" ng-click="hideSettings()" class="btn btn-warning">Cancel</button>
-        <button type="submit" ng-disabled="!settingsFrom.$valid" ng-click="saveSettings()" class="btn btn-primary">Save</button>
+        <button ng-hide="settings.settingsNotFound" ng-click="hideSettings()" class="kuiButton kuiButton--warning">Cancel</button>
+        <button type="submit" ng-disabled="!settingsForm.$valid" ng-click="saveSettings()" class="kuiButton kuiButton--primary">Save</button>
       </form>
     </div>
   </div>
-
-(??)    <div class="pull-right live-tail-button">
-(??)      <i ng-click="toggleLiveTail()" class="fa fa-3x" ng-class="getLiveTailIcon()"></i>
-(??)    </div>
-(??)    </div>
-(??)</div>
 </div>

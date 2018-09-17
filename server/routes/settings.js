@@ -27,9 +27,10 @@ module.exports = function (server) {
       
       var updateRequest = {
         index: request.state.kibana5_token + "_kibana",
-        type: 'logtrail',
-        id: 'config',
+        type: 'doc',
+        id: 'logtrail:config',
         body: {
+          logtrail: {
             field_mapping: {
               mapping: {
                 timestamp: '@timestamp',
@@ -38,14 +39,16 @@ module.exports = function (server) {
                 message: 'message',
               },
               message_format: settings.messageFormat
-          }
+            }
+          },
+          type: 'logtrail'
         }
       }
       if (raw) {
         updateRequest.body.field_mapping['hostname_keyword'] = host;
       }
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
-      callWithRequest(request, 'index',updateRequest).then(function (resp) {
+      callWithRequest(request, 'index', updateRequest).then(function (resp) {
         reply({
           ok: true
         });
@@ -74,16 +77,17 @@ module.exports = function (server) {
         return;
       }
 
-      var indicesToSearch = await utils.getIndicesToSearch(index, "@timestamp", null, request, server);
-      if (indicesToSearch.length > 0) {
-        var latestIndex = indicesToSearch[0];
+      //var indicesToSearch = await utils.getIndicesToSearch(index, "@timestamp", null, request, server);
+      if (true) {
+        //var latestIndex = indicesToSearch[0];
         var mappingRequest = {
-          index: latestIndex
+          index: index
         }
         const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
         callWithRequest(request, 'indices.getMapping',mappingRequest).then(function (resp) {
+          console.log(JSON.stringify(resp));
           for (var index in resp) {
-            var properties = resp[index].mappings["logsene_type"].properties;
+            var properties = resp[index].mappings["doc"].properties;
             //Known mappings
             var ignoreFields = ["@timestamp","@timestamp_received","message","logsene_original_type"];
             var fields = [];
@@ -127,6 +131,9 @@ module.exports = function (server) {
             if (properties[p].fields.raw) {
               field.rawType = properties[p].fields.raw.type
             }
+            if (properties[p].fields.keyword) {
+              field.keywordType = properties[p].fields.keyword.type
+            }
           }
           fieldsArray.push(field);
         }
@@ -151,8 +158,8 @@ module.exports = function (server) {
       }
       var getRequest = {
         index: index + '_kibana',
-        type: 'logtrail',
-        id: 'config'
+        type: 'doc',
+        id: 'logtrail:config'
       };
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       callWithRequest(request, 'get',getRequest).then(function (resp) {
@@ -161,8 +168,8 @@ module.exports = function (server) {
           var config = require('../../logtrail.json');
           var indexConfig = config.index_patterns[0];
           indexConfig.es.default_index = index;
-          indexConfig.fields = configFromES.field_mapping;
-          indexConfig.color_mapping = configFromES.color_mapping;
+          indexConfig.fields = configFromES.logtrail.field_mapping;
+          indexConfig.color_mapping = configFromES.logtrail.color_mapping;
           reply({
             ok: true,
             config: config

@@ -1,4 +1,4 @@
-import uiModules from "ui/modules";
+import { uiModules } from "ui/modules";
 import chrome from 'ui/chrome';
 
 const app = uiModules.get('app/logtrail', []);
@@ -50,6 +50,10 @@ app.controller('SettingsController', function($scope, $http) {
            }
            if (field.rawType && field.rawType === 'keyword') {
             hostFields.push(field.name + '.raw');
+           }
+
+           if (field.keywordType && field.keywordType === 'keyword') {
+            hostFields.push(field.name + '.keyword');
            }
          }
          $scope.settings['hostFields'] = hostFields;
