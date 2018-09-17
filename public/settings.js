@@ -36,7 +36,7 @@ app.controller('SettingsController', function($scope, $http) {
   }, false);
 
   function showSettings(args) {
-    var selected_index_config = args.selected_index_config;
+    var selectedIndexConfig = args.selectedIndexConfig;
     $scope.settings.settingsNotFound = args.settingsNotFound;
     $http.get(chrome.addBasePath('/logtrail/settings')).then(function (resp) {
       if (resp.data.ok) {
@@ -45,26 +45,19 @@ app.controller('SettingsController', function($scope, $http) {
          var autoCreate = false;
          for (let field of resp.data.fields) {
            programFields.push(field.name);
-           if (field.type === 'keyword') {
+           if (field.aggregatable) {
             hostFields.push(field.name);
-           }
-           if (field.rawType && field.rawType === 'keyword') {
-            hostFields.push(field.name + '.raw');
-           }
-
-           if (field.keywordType && field.keywordType === 'keyword') {
-            hostFields.push(field.name + '.keyword');
            }
          }
          $scope.settings['hostFields'] = hostFields;
          $scope.settings['programFields'] = programFields;
-         if (selected_index_config) {
-          $scope.settings.host = selected_index_config.fields.mapping.hostname;
-          if (selected_index_config.fields.hostname_keyword) {
-            $scope.settings.host = selected_index_config.fields.hostname_keyword;
+         if (selectedIndexConfig) {
+          $scope.settings.host = selectedIndexConfig.fields.mapping.hostname;
+          if (selectedIndexConfig.fields.hostname_keyword) {
+            $scope.settings.host = selectedIndexConfig.fields.hostname_keyword;
           }
-          $scope.settings.program = selected_index_config.fields.mapping.program;
-          $scope.settings.messageFormat = selected_index_config.fields.message_format;
+          $scope.settings.program = selectedIndexConfig.fields.mapping.program;
+          $scope.settings.messageFormat = selectedIndexConfig.fields.message_format;
          } else {
           if (args.settingsNotFound) {
             //pre-populate dialog if host and source fields are present

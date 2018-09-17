@@ -23,7 +23,7 @@ exports.getIndicesToSearch = function(index, timestampField, fromTimestamp, requ
       delete fieldStatsRequest.body.index_constraints;
     }
     
-    callWithRequest(request,'fieldStats',fieldStatsRequest).then(function (resp) {
+    callWithRequest(request,'fieldCaps',fieldStatsRequest).then(function (resp) {
       var indicesToSearch = [];
       var items = [];
       if (resp.indices) {

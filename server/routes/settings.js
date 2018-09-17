@@ -12,6 +12,9 @@ module.exports = function (server) {
       if (host.endsWith('.raw')) {
         settings.host = host.substring(0, host.indexOf('.raw'));
         raw = true;
+      } else if (host.endsWith('.keyword')) {
+        settings.host = host.substring(0, host.indexOf('.keyword'));
+        raw = true;
       }
       //verify template 
       var handlebar = require('handlebars');
@@ -45,7 +48,7 @@ module.exports = function (server) {
         }
       }
       if (raw) {
-        updateRequest.body.field_mapping['hostname_keyword'] = host;
+        updateRequest.body.logtrail.field_mapping['hostname_keyword'] = host;
       }
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       callWithRequest(request, 'index', updateRequest).then(function (resp) {
@@ -77,36 +80,39 @@ module.exports = function (server) {
         return;
       }
 
-      //var indicesToSearch = await utils.getIndicesToSearch(index, "@timestamp", null, request, server);
-      if (true) {
-        //var latestIndex = indicesToSearch[0];
-        var mappingRequest = {
-          index: index
-        }
-        const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
-        callWithRequest(request, 'indices.getMapping',mappingRequest).then(function (resp) {
-          console.log(JSON.stringify(resp));
-          for (var index in resp) {
-            var properties = resp[index].mappings["doc"].properties;
-            //Known mappings
-            var ignoreFields = ["@timestamp","@timestamp_received","message","logsene_original_type"];
-            var fields = [];
-            getFieldMappings (properties, fields, ignoreFields, null);
-            reply({
-              ok: true,
-              fields: fields
-            });
-            return;
-          }
-        }).catch(function (resp) {
-          console.error("Error while fetching fields ", resp)
-          reply({
-            ok: false,
-            message: "Cannot fetch settings info"
-          });
-          return;
-        });
+      var fieldCapsRequest = {
+        index: index + '_*',
+        fields: '*',
+        ignoreUnavailable: true,
+        allowNoIndices: false
       }
+      const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
+      callWithRequest(request, 'fieldCaps',fieldCapsRequest).then(function (resp) {
+        var fieldsToReturn = [];
+        for (var field in resp.fields) {
+          for (var type in resp.fields[field]) {
+            if (!type.startsWith('_')) {
+              const f = {
+                name : field,
+                aggregatable: resp.fields[field][type].aggregatable
+              }
+              fieldsToReturn.push(f);
+            }
+          }
+        }
+        reply({
+          ok: true,
+          fields: fieldsToReturn
+        });
+        return;
+      }).catch(function (resp) {
+        console.error("Error while fetching fields ", resp)
+        reply({
+          ok: false,
+          message: "Cannot fetch settings info"
+        });
+        return;
+      });
     }
   });
 

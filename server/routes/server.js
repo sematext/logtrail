@@ -198,7 +198,7 @@ module.exports = function (server) {
         };
         var hostnameField = selectedConfig.fields.mapping.hostname;
         if (selectedConfig.fields['hostname_keyword']) {
-          hostnameField += '.raw';
+          hostnameField = selectedConfig.fields['hostname_keyword'];
         }
         termQuery.term[hostnameField] = request.payload.hostname;
         searchRequest.body.query.bool.filter.bool.must.push(termQuery);
@@ -261,7 +261,7 @@ module.exports = function (server) {
 
       var hostnameField = selectedConfig.fields.mapping.hostname;
       if (selectedConfig.fields['hostname_keyword']) {
-        hostnameField += '.raw';
+        hostnameField = selectedConfig.fields['hostname_keyword'];
       }
       var hostAggRequest = {
         index: selectedConfig.es.default_index,
