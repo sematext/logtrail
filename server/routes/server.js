@@ -245,28 +245,20 @@ module.exports = function (server) {
     handler: async function (request,reply) {
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       var selectedConfig = request.payload.config;
-      var index = request.payload.index;
-      var timestamp = request.payload.timestamp;
-      var moment = require('moment');
-      /*var indicesToSearch = await utils.getIndicesToSearch(selectedConfig.es.default_index, 
-        selectedConfig.fields.mapping.timestamp, timestamp, request, server);
-      if (!indicesToSearch || indicesToSearch.length === 0) {
-        server.log(['logtrail','info'],"Empty indices to search for timestamp "+ timestamp + " with index " + selectedConfig.es.default_index);
-        reply({
-          ok: true,
-          resp: []
-        });
-        return;
-      }*/
 
       var hostnameField = selectedConfig.fields.mapping.hostname;
       if (selectedConfig.fields['hostname_keyword']) {
         hostnameField = selectedConfig.fields['hostname_keyword'];
       }
+
       var hostAggRequest = {
         index: selectedConfig.es.default_index,
         body : {
           size: 0,
+          query: {
+            range: {
+            }
+          },
           aggs: {
             hosts: {
               terms: {
@@ -277,9 +269,15 @@ module.exports = function (server) {
           }
         }
       };
-      //console.log(JSON.stringify(hostAggRequest));
+
+      const timestamp = request.payload.timestamp;
+      if (timestamp) {
+        var range = hostAggRequest.body.query.range;
+        range[selectedConfig.fields.mapping.timestamp] = {};
+        range[selectedConfig.fields.mapping.timestamp]['gte'] = timestamp;
+        range[selectedConfig.fields.mapping.timestamp].format = 'epoch_millis';
+      }
       callWithRequest(request,'search',hostAggRequest).then(function (resp) {
-      //console.log(JSON.stringify(resp));//.aggregations.hosts.buckets);
         reply({
           ok: true,
           resp: resp.aggregations.hosts.buckets
