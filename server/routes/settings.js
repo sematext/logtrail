@@ -3,7 +3,7 @@ var utils = require('./utils.js');
 // Save settings
 module.exports = function (server) {
   server.route({
-    method: "POST",
+    method: 'POST',
     path: '/logtrail/settings',
     handler: function (request, reply) {
       var settings = request.payload;
@@ -23,13 +23,13 @@ module.exports = function (server) {
       } catch(e) {
         reply({
           ok: false,
-          message: "Invalid message format - " + e.message
+          message: 'Invalid message format - ' + e.message
         });
         return;
       }
       
       var updateRequest = {
-        index: request.state.kibana5_token + "_kibana",
+        index: request.state.kibana5_token + '_kibana',
         type: 'doc',
         id: 'logtrail:config',
         body: {
@@ -65,17 +65,17 @@ module.exports = function (server) {
   });
 
   server.route({
-    method: "GET",
+    method: 'GET',
     path: '/logtrail/settings',
     handler: async function (request, reply) {
       var index = null;
       if (request.state.kibana5_token) {
         index = request.state.kibana5_token;
       } else {
-        console.error("Cannot find App Token in request.")
+        console.error('Cannot find App Token in request.')
         reply({
           ok: false,
-          message: "Cannot find App Token in the request"
+          message: 'Cannot find App Token in the request'
         });
         return;
       }
@@ -89,12 +89,13 @@ module.exports = function (server) {
       const { callWithRequest } = server.plugins.elasticsearch.getCluster('data');
       callWithRequest(request, 'fieldCaps',fieldCapsRequest).then(function (resp) {
         var fieldsToReturn = [];
+        var fieldsToIgnore = ['@timestamp', '@timestamp_received', 'message', 'message.keyword', 'message.raw', 'logsene_original_type'];
         for (var field in resp.fields) {
           for (var type in resp.fields[field]) {
-            if (!type.startsWith('_')) {
+            if (!type.startsWith('_') && !fieldsToIgnore.includes(field) ) {
               const f = {
                 name : field,
-                aggregatable: resp.fields[field][type].aggregatable
+                keyword: type === 'keyword'
               }
               fieldsToReturn.push(f);
             }
@@ -106,46 +107,15 @@ module.exports = function (server) {
         });
         return;
       }).catch(function (resp) {
-        console.error("Error while fetching fields ", resp)
+        console.error('Error while fetching fields ', resp)
         reply({
           ok: false,
-          message: "Cannot fetch settings info"
+          message: 'Cannot fetch settings info'
         });
         return;
       });
     }
   });
-
-  function getFieldMappings(properties, fieldsArray, ignoreFields, parentField) {
-    for (var p in properties) {
-      var name = p;
-      if (parentField) {
-        name = parentField + "." + p;
-      }
-      if (ignoreFields.indexOf(p) === -1) {
-        //nested
-        if (properties[p].properties) {
-          getFieldMappings(properties[p].properties, fieldsArray, ignoreFields,name);
-        } else {
-          
-          var field = {
-            name: name,
-            type: properties[p].type
-          }
-
-          if (properties[p].fields) {
-            if (properties[p].fields.raw) {
-              field.rawType = properties[p].fields.raw.type
-            }
-            if (properties[p].fields.keyword) {
-              field.keywordType = properties[p].fields.keyword.type
-            }
-          }
-          fieldsArray.push(field);
-        }
-      }
-    }
-  }
 
   server.route({
     method: 'GET',
@@ -155,10 +125,10 @@ module.exports = function (server) {
       if (request.state.kibana5_token) {
         index = request.state.kibana5_token;
       } else {
-        console.error("Cannot find App Token in request.")
+        console.error('Cannot find App Token in request.')
         reply({
           ok: false,
-          message: "Cannot find App Token in the request"
+          message: 'Cannot find App Token in the request'
         });
         return;
       }
@@ -184,14 +154,14 @@ module.exports = function (server) {
           reply({
             ok: false,
             notFound: true,
-            message: "Cannot find logtrail configuration"
+            message: 'Cannot find logtrail configuration'
           });
         }
       }).catch(function (resp) {
-        console.error("Error while fetching config ", resp)
+        console.error('Error while fetching config ', resp)
         reply({
           ok: false,
-          message: "Cannot fetch logtrail configuration."
+          message: 'Cannot fetch logtrail configuration.'
         });
       });
     }
