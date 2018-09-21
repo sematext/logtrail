@@ -278,6 +278,13 @@ module.exports = function (server) {
         range[selectedConfig.fields.mapping.timestamp].format = 'epoch_millis';
       }
       callWithRequest(request,'search',hostAggRequest).then(function (resp) {
+        if (!resp.aggregations) {
+          reply({
+            ok: true,
+            resp: []
+          });
+          return;
+        }
         reply({
           ok: true,
           resp: resp.aggregations.hosts.buckets
