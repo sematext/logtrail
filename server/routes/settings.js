@@ -29,7 +29,7 @@ module.exports = function (server) {
       }
       
       var updateRequest = {
-        index: request.state.kibana5_token + '_kibana',
+        index: request.state.kibana_token_v3 + '_kibana',
         type: 'doc',
         id: 'logtrail:config',
         body: {
@@ -69,8 +69,8 @@ module.exports = function (server) {
     path: '/logtrail/settings',
     handler: async function (request, reply) {
       var index = null;
-      if (request.state.kibana5_token) {
-        index = request.state.kibana5_token;
+      if (request.state.kibana_token_v3) {
+        index = request.state.kibana_token_v3;
       } else {
         console.error('Cannot find App Token in request.')
         reply({
@@ -122,8 +122,8 @@ module.exports = function (server) {
     path: '/logtrail/config',
     handler: function (request, reply) {
       var index = null;
-      if (request.state.kibana5_token) {
-        index = request.state.kibana5_token;
+      if (request.state.kibana_token_v3) {
+        index = request.state.kibana_token_v3;
       } else {
         console.error('Cannot find App Token in request.')
         reply({
