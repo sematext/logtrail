@@ -2,6 +2,7 @@ import angular from 'angular';
 import chrome from 'ui/chrome';
 import uiRoutes from 'ui/routes';
 import { uiModules } from 'ui/modules';
+import sugarDate from 'sugar-date';
 import moment from 'moment-timezone';
 import AnsiToHtml from 'ansi-to-html';
 
